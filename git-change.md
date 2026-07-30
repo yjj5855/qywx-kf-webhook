@@ -11,3 +11,4 @@
 - 新增 MessageHandler 处理器抽象，支持 Echo/Silent 两种默认处理器
 - 新增 Pydantic 数据模型，规范回调请求和API交互
 - 新增配置管理，支持环境变量
+- 新增 EchoHandler 增加 atMe 判断，仅当消息@机器人时才回复

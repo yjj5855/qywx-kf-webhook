@@ -15,9 +15,11 @@ class MessageHandler(ABC):
 
 
 class EchoHandler(MessageHandler):
-    """复读机处理器（Demo）"""
+    """复读机处理器（Demo）：仅回复@机器人的消息"""
 
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
+        if req.at_me not in (True, "true"):
+            return ""
         return req.spoken
 
 
