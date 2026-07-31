@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -8,6 +9,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 
 from client import get_client
 from config import settings
@@ -63,16 +65,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="WorkTool Callback Service", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 async def _process_message(req: CallbackRequest, robot_id: str) -> None:
     """异步处理消息，通过 send_text 回复"""
-    # 消息去重
-    if req.message_id:
-        if req.message_id in _seen_message_ids:
-            logger.debug("重复消息 message_id=%r，跳过", req.message_id)
+    # 消息去重：优先用 message_id，为空则用图片 base64 的 hash
+    dedup_key = req.message_id or ""
+    if not dedup_key and req.file_base64:
+        dedup_key = hashlib.md5(req.file_base64.encode()).hexdigest()
+    if dedup_key:
+        if dedup_key in _seen_message_ids:
+            logger.debug("重复消息 dedup_key=%r，跳过", dedup_key[:16])
             return
-        _seen_message_ids.add(req.message_id)
+        _seen_message_ids.add(dedup_key)
         if len(_seen_message_ids) > _MAX_SEEN_IDS:
             _seen_message_ids.clear()
 

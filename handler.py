@@ -64,6 +64,21 @@ class IntentHandler(MessageHandler):
 
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
         at_me = req.at_me in (True, "true")
+        is_image = req.text_type == 2
+        # 图片消息时用占位文本供门控判断，spoken 可能为空
+        gate_msg = req.spoken or ("[图片]" if is_image else "")
+
+        # 图片消息：保存到本地并生成外网 URL
+        image_url = ""
+        image_base64 = ""
+        if is_image and req.file_base64:
+            from image_utils import save_base64_image
+
+            relative_path = save_base64_image(req.file_base64)
+            if relative_path and settings.public_base_url:
+                image_url = f"{settings.public_base_url}/static/{relative_path}"
+            else:
+                image_base64 = req.file_base64  # 无外网地址时用 base64
 
         # 群聊：未被 @ 时走 AI 门控判断是否需要回复
         if req.is_group and not at_me:
@@ -71,20 +86,22 @@ class IntentHandler(MessageHandler):
             should_reply = await self._gate.should_reply(
                 group_name=req.group_remark or req.group_name,
                 sender_name=req.received_name,
-                last_message=req.spoken,
+                last_message=gate_msg,
                 recent_context=recent_context,
             )
             if not should_reply:
                 logger.info("门控判定无需回复，跳过")
                 return ""
 
-        # 意图识别（带多轮对话记忆 + 上下文）
+        # 意图识别（带多轮对话记忆 + 上下文 + 图片）
         result = await self._recognizer.recognize(
             spoken=req.spoken,
             session_id=req.session_id,
             user=req.received_name,
             group_name=req.group_remark or req.group_name if req.is_group else "",
             sender_name=req.received_name,
+            image_base64=image_base64,
+            image_url=image_url,
         )
 
         logger.info(
@@ -101,8 +118,9 @@ class IntentHandler(MessageHandler):
             logger.info("未匹配到意图 intent=%s，返回兜底回复", result.intent.value)
             reply = "抱歉，我没理解您的意思，请换个方式描述一下？"
 
-        # 记录对话记忆（存储实际回复文案 + 发送者名称，非 AI 原始 JSON）
-        self._recognizer.remember(req.session_id, req.spoken, reply, req.received_name)
+        # 记录对话记忆（图片消息用占位文本）
+        user_msg = req.spoken or ("[图片]" if is_image else "")
+        self._recognizer.remember(req.session_id, user_msg, reply, req.received_name)
         return reply
 
 

@@ -59,6 +59,13 @@ class ConversationMemory:
         if len(history) > self._max_messages:
             self._store[session_id] = history[-self._max_messages:]
 
+    def add_user(self, session_id: str, content: str) -> None:
+        """仅记录一条用户消息（无对应机器人回复）"""
+        history = self._store[session_id]
+        history.append({"role": "user", "content": content})
+        if len(history) > self._max_messages:
+            self._store[session_id] = history[-self._max_messages:]
+
     def clear(self, session_id: str) -> None:
         self._store.pop(session_id, None)
 
@@ -90,12 +97,18 @@ class IntentRecognizer:
         Args:
             session_id: 会话唯一标识
             user_msg: 用户原始消息
-            reply_text: 机器人实际回复文案
+            reply_text: 机器人实际回复文案，为空时仅记录用户消息
             sender_name: 发送者名称，用于在上下文中区分不同发言人
         """
-        if session_id and reply_text:
-            content = f"{sender_name}：{user_msg}" if sender_name else user_msg
+        if not session_id:
+            return
+        content = f"{sender_name}：{user_msg}" if sender_name else user_msg
+        if not content.strip():
+            return
+        if reply_text:
             self._memory.add(session_id, content, reply_text)
+        else:
+            self._memory.add_user(session_id, content)
 
     def get_history(self, session_id: str) -> str:
         """获取会话历史，格式化为门控可用的上下文字符串"""
@@ -128,6 +141,8 @@ class IntentRecognizer:
         user: str = "",
         group_name: str = "",
         sender_name: str = "",
+        image_base64: str = "",
+        image_url: str = "",
     ) -> IntentResult:
         """识别用户消息意图
 
@@ -137,6 +152,8 @@ class IntentRecognizer:
             user: 用户标识
             group_name: 群名（群聊时传入，拼入上下文）
             sender_name: 发送者名称（群聊时传入，拼入上下文）
+            image_base64: 图片 base64 数据（无外网地址时使用）
+            image_url: 图片外网 URL（优先于 base64）
 
         Returns:
             IntentResult：识别结果；异常或未配置时降级为 UNKNOWN
@@ -147,18 +164,28 @@ class IntentRecognizer:
             return IntentResult(intent=IntentType.UNKNOWN)
 
         try:
-            # 构建用户消息，群聊时附带群名和发送者上下文
-            user_content = spoken
-            if group_name or sender_name:
-                parts: list[str] = []
-                if group_name:
-                    parts.append(f"群名：{group_name}")
-                if sender_name:
-                    parts.append(f"发送者：{sender_name}")
-                parts.append(f"消息：{spoken}")
-                user_content = "\n".join(parts)
+            # 构建用户消息文本（群聊时附带上下文）
+            text_parts: list[str] = []
+            if group_name:
+                text_parts.append(f"群名：{group_name}")
+            if sender_name:
+                text_parts.append(f"发送者：{sender_name}")
+            text_parts.append(f"消息：{spoken}" if spoken else "消息：[图片]")
+            text_content = "\n".join(text_parts) if (group_name or sender_name) else (spoken or "[图片]")
 
-            messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
+            # 构建用户消息 content（纯文本或图文混合）
+            if image_url or image_base64:
+                img_url = image_url or f"data:image/png;base64,{image_base64}"
+                user_content: list[dict[str, object]] = [
+                    {"type": "text", "text": text_content},
+                    {"type": "image_url", "image_url": {"url": img_url}},
+                ]
+            else:
+                user_content = text_content
+
+            messages: list[dict[str, object]] = [
+                {"role": "system", "content": SYSTEM_PROMPT}
+            ]
             if session_id:
                 messages.extend(self._memory.get(session_id))
             messages.append({"role": "user", "content": user_content})

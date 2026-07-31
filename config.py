@@ -28,5 +28,8 @@ class Settings(BaseSettings):
     gate_model: str = "kimi-k2.5"  # 门控专用模型，为空则用 intent_model
     gate_temperature: float = 1.0  # 门控温度参数
 
+    # 图片服务（为空则用 base64 直接传给 AI）
+    public_base_url: str = ""  # 服务器外网地址（如 https://example.com），用于生成图片 URL
+
 
 settings = Settings()
