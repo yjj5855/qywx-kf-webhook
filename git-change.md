@@ -18,3 +18,5 @@
 - 新增 群聊回复门控 GroupReplyGate，AI 预判是否需要回复后再执行意图识别
 - 新增 OpenAI 请求体和返回体 debug 日志便于排查 AI 调用问题
 - 修复 群聊门控被 at_me 前置检查拦截导致未生效
+- 新增 message_id 消息去重，防止 WorkTool 重复推送
+- 优化 intent 模块日志级别改为 DEBUG，确保 OpenAI 调试日志实际输出

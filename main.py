@@ -36,11 +36,18 @@ for _name in _project_loggers:
     _pkg.addHandler(_log_handler)
     _pkg.propagate = False  # 不往根 logger 传播，避免重复
 
+# intent 子模块（gate 等）需要 DEBUG 级别输出 OpenAI 请求/返回详情
+logging.getLogger("intent").setLevel(logging.DEBUG)
+
 # 静默第三方库日志
 for _noisy in ("watchfiles.main", "httpx", "httpx._client", "uvicorn", "uvicorn.error", "uvicorn.access"):
     logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
+
+# 消息去重：WorkTool 可能短时间内重复推送同一消息
+_seen_message_ids: set[str] = set()
+_MAX_SEEN_IDS = 2000
 
 
 @asynccontextmanager
@@ -58,6 +65,15 @@ app = FastAPI(title="WorkTool Callback Service", lifespan=lifespan)
 
 async def _process_message(req: CallbackRequest, robot_id: str) -> None:
     """异步处理消息，通过 send_text 回复"""
+    # 消息去重
+    if req.message_id:
+        if req.message_id in _seen_message_ids:
+            logger.debug("重复消息 message_id=%r，跳过", req.message_id)
+            return
+        _seen_message_ids.add(req.message_id)
+        if len(_seen_message_ids) > _MAX_SEEN_IDS:
+            _seen_message_ids.clear()
+
     try:
         logger.info(
             "收到消息 scene=%s session=%r spoken=%r at_me=%r",
