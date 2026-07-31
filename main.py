@@ -28,10 +28,11 @@ _log_handler.setFormatter(
     logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
 )
 
-# 根 logger 捕获所有模块日志
+# 根 logger 捕获所有模块日志（防 uvicorn reload 重复添加）
 _root_logger = logging.getLogger()
 _root_logger.setLevel(logging.INFO)
-_root_logger.addHandler(_log_handler)
+if not any(isinstance(h, RotatingFileHandler) for h in _root_logger.handlers):
+    _root_logger.addHandler(_log_handler)
 
 logger = logging.getLogger(__name__)
 

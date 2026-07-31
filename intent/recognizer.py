@@ -9,14 +9,24 @@ from intent.types import IntentResult, IntentType
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """你是一个消息意图识别助手。分析用户消息，结合对话上下文判断意图并返回 JSON。
+SYSTEM_PROMPT = """你是一个消息意图识别助手。分析用户消息，结合对话上下文判断意图并提取关键实体。
 
 ## 支持的意图
-- INVITE_TO_GROUP: 用户想邀请/拉人进入某个群聊
+- ADD_FRIEND: 用户想添加好友。如"加好友""添加好友""加这个手机号""帮我加个人"。
+- CREATE_GROUP: 用户想拉人入群或创建新群。如"拉群""拉我进群""把XX拉进产品群""建群""创建一个群""帮我建个群拉上张三李四"。
+
+## 实体提取
+针对 ADD_FRIEND 提取：
+- target_phone: 对方的手机号（纯数字，如 13800138000）
+- target_person: 对方的姓名/昵称（用作备注，不知道的留空）
+
+针对 CREATE_GROUP 提取：
+- target_person: 要拉入群的人（姓名/手机号/微信号，多人用中文顿号分隔如"张三、李四"），说"拉我"则是"我"
+- target_group: 目标群名（不知道的留空）
 
 ## 输出格式
 只返回一个 JSON 对象，不要有其他内容：
-{"intent": "<意图>", "confidence": <0.0-1.0的置信度>}
+{"intent": "<意图>", "confidence": <0.0-1.0>, "target_person": "", "target_group": "", "target_phone": ""}
 
 如果无法识别意图，返回：
 {"intent": "UNKNOWN", "confidence": 0.0}"""
@@ -108,20 +118,21 @@ class IntentRecognizer:
                 model=self._model,
                 messages=messages,
                 temperature=self._temperature,
+                stream=False,
             )
 
             answer = response.choices[0].message.content or ""
-            intent, confidence = self._parse_answer(answer)
+            intent, confidence, entities = self._parse_answer(answer)
 
             if session_id:
                 self._memory.add(session_id, spoken, answer)
 
             logger.info(
-                "意图识别完成 session=%r intent=%s confidence=%.2f raw=%r",
+                "意图识别完成 session=%r intent=%s confidence=%.2f entities=%s",
                 session_id,
                 intent.value,
                 confidence,
-                answer[:100],
+                entities,
             )
 
             if confidence < self._confidence_threshold:
@@ -132,17 +143,17 @@ class IntentRecognizer:
                 )
                 return IntentResult(intent=IntentType.UNKNOWN, confidence=confidence, raw_answer=answer)
 
-            return IntentResult(intent=intent, confidence=confidence, raw_answer=answer)
+            return IntentResult(intent=intent, confidence=confidence, raw_answer=answer, entities=entities)
 
         except Exception:
             logger.exception("意图识别失败，降级为 UNKNOWN")
             return IntentResult(intent=IntentType.UNKNOWN)
 
-    def _parse_answer(self, answer: str) -> tuple[IntentType, float]:
-        """从 AI 回答中解析意图和置信度
+    def _parse_answer(self, answer: str) -> tuple[IntentType, float, dict]:
+        """从 AI 回答中解析意图、置信度和实体
 
         支持格式：
-        - JSON: {"intent": "INVITE_TO_GROUP", "confidence": 0.95}
+        - JSON: {"intent": "INVITE_TO_GROUP", "confidence": 0.95, "target_person": "张三", "target_group": "产品群"}
         - 纯文本: "INVITE_TO_GROUP" 或 "UNKNOWN"
         """
         try:
@@ -152,24 +163,39 @@ class IntentRecognizer:
             if isinstance(data, dict):
                 intent_str = str(data.get("intent", "")).upper().strip()
                 confidence = float(data.get("confidence", 0.9))
-                return _str_to_intent(intent_str), min(max(confidence, 0.0), 1.0)
+                entities = {
+                    k: str(data.get(k, ""))
+                    for k in ("target_person", "target_group", "target_phone")
+                }
+                return (
+                    _str_to_intent(intent_str),
+                    min(max(confidence, 0.0), 1.0),
+                    entities,
+                )
         except (json.JSONDecodeError, ValueError, TypeError):
             pass
 
         cleaned = answer.strip().upper()
         intent = _str_to_intent(cleaned)
         confidence = 0.9 if intent != IntentType.UNKNOWN else 0.0
-        return intent, confidence
+        return intent, confidence, {}
 
 
 def _str_to_intent(text: str) -> IntentType:
     """字符串到意图类型的宽松映射"""
     mapping: dict[str, IntentType] = {
-        "INVITE_TO_GROUP": IntentType.INVITE_TO_GROUP,
-        "INVITE": IntentType.INVITE_TO_GROUP,
-        "拉人入群": IntentType.INVITE_TO_GROUP,
-        "拉人": IntentType.INVITE_TO_GROUP,
-        "邀请入群": IntentType.INVITE_TO_GROUP,
+        "ADD_FRIEND": IntentType.ADD_FRIEND,
+        "CREATE_GROUP": IntentType.CREATE_GROUP,
+        "INVITE_TO_GROUP": IntentType.CREATE_GROUP,
+        "建群": IntentType.CREATE_GROUP,
+        "创建群": IntentType.CREATE_GROUP,
+        "新建群": IntentType.CREATE_GROUP,
+        "拉人入群": IntentType.CREATE_GROUP,
+        "拉人": IntentType.CREATE_GROUP,
+        "邀请入群": IntentType.CREATE_GROUP,
+        "加好友": IntentType.ADD_FRIEND,
+        "添加好友": IntentType.ADD_FRIEND,
+        "INVITE": IntentType.CREATE_GROUP,
     }
     for key, intent in mapping.items():
         if key in text:

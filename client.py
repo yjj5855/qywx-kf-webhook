@@ -51,6 +51,78 @@ class WorkToolClient:
             json=body.model_dump(by_alias=True),
         )
 
+    # ---- 好友与群管理 ----
+
+    async def add_friend_by_phone(
+        self,
+        phone: str,
+        mark_name: str = "",
+        leaving_msg: str = "",
+        tag_list: list[str] | None = None,
+    ) -> dict:
+        """按手机号添加好友（type=213）
+
+        Args:
+            phone: 手机号
+            mark_name: 备注昵称
+            leaving_msg: 加好友附言
+            tag_list: 备注标签列表
+        """
+        friend: dict = {"phone": phone}
+        if mark_name:
+            friend["markName"] = mark_name
+        if leaving_msg:
+            friend["leavingMsg"] = leaving_msg
+        if tag_list:
+            friend["tagList"] = tag_list
+
+        item: dict = {
+            "type": 213,
+            "friend": friend,
+        }
+        body = SendMessageRequest(list=[item])
+        return await self._post(
+            "/wework/sendRawMessage",
+            params={"robotId": self.robot_id},
+            json=body.model_dump(by_alias=True),
+        )
+
+    async def create_group(
+        self,
+        group_name: str,
+        members: list[str],
+        announcement: str = "",
+        remark: str = "",
+        template: str = "",
+    ) -> dict:
+        """创建外部群并拉入指定成员（type=206）
+
+        Args:
+            group_name: 群名
+            members: 要拉入群的成员昵称列表
+            announcement: 群公告（选填）
+            remark: 群备注（选填）
+            template: 群模板（选填）
+        """
+        item: dict = {
+            "type": 206,
+            "groupName": group_name,
+            "selectList": members,
+        }
+        if announcement:
+            item["groupAnnouncement"] = announcement
+        if remark:
+            item["groupRemark"] = remark
+        if template:
+            item["groupTemplate"] = template
+
+        body = SendMessageRequest(list=[item])
+        return await self._post(
+            "/wework/sendRawMessage",
+            params={"robotId": self.robot_id},
+            json=body.model_dump(by_alias=True),
+        )
+
     # ---- 回调配置 ----
 
     async def bind_callback(self, callback_url: str, callback_type: int = 11) -> dict:

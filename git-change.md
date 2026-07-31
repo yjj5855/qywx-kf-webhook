@@ -20,3 +20,9 @@
 - 修复 env_file 改为绝对路径避免 CWD 变化导致配置读取失败
 - 修复 temperature 硬编码 0.1 导致 kimi-k2.5 返回 400 降级为复读
 - 修复 日志配到根 logger 避免子模块错误丢失到 stdout
+- 新增 ADD_FRIEND 意图按手机号添加好友
+- 新增 CreateGroupAction 建群前先加好友的完整流程
+- 新增 WorkToolClient 的 add_friend_by_phone 和 create_group 方法
+- 优化 AI 提示词支持多实体提取
+- 删除 INVITE_TO_GROUP 统一为 CREATE_GROUP
+- 新增 非流式输出显式声明

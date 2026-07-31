@@ -39,7 +39,7 @@ class IntentHandler(MessageHandler):
 
     def __init__(self) -> None:
         from intent.recognizer import IntentRecognizer
-        from intent.actions import InviteToGroupAction
+        from intent.actions import AddFriendAction, CreateGroupAction
         from intent.types import IntentType
 
         self._recognizer = IntentRecognizer(
@@ -49,8 +49,9 @@ class IntentHandler(MessageHandler):
             temperature=settings.intent_temperature,
             confidence_threshold=settings.intent_confidence_threshold,
         )
-        self._actions: dict[IntentType, InviteToGroupAction] = {
-            IntentType.INVITE_TO_GROUP: InviteToGroupAction(),
+        self._actions: dict[IntentType, AddFriendAction | CreateGroupAction] = {
+            IntentType.ADD_FRIEND: AddFriendAction(),
+            IntentType.CREATE_GROUP: CreateGroupAction(),
         }
         self._fallback = EchoHandler()
 
@@ -75,7 +76,7 @@ class IntentHandler(MessageHandler):
         # 匹配 Action 执行
         action = self._actions.get(result.intent)
         if action is not None:
-            return await action.execute(req, robot_id)
+            return await action.execute(req, result, robot_id)
 
         # 未匹配：降级到 EchoHandler
         logger.info("未匹配到 Action，降级到 EchoHandler")
