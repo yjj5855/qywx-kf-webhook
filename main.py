@@ -30,9 +30,7 @@ _log_handler.setFormatter(
 )
 
 # 只给项目模块挂 handler，避免 uvicorn 的 handler 也写 app.log 造成重复
-# 注意：python main.py → __main__ 模块，uvicorn.run("main:app") → importlib 导入 main 模块
-# 同一进程内顶层代码执行两次，通过 handlers 判重避免 handler 重复挂载
-_project_loggers = ("main", "handler", "client", "intent")
+_project_loggers = ("__main__", "handler", "client", "intent")
 for _name in _project_loggers:
     _pkg = logging.getLogger(_name)
     _pkg.setLevel(logging.INFO)
@@ -44,7 +42,7 @@ for _name in _project_loggers:
 logging.getLogger("intent").setLevel(logging.DEBUG)
 
 # 静默第三方库日志
-for _noisy in ("watchfiles.main", "httpx", "httpx._client", "uvicorn", "uvicorn.error", "uvicorn.access"):
+for _noisy in ("httpx", "httpx._client", "uvicorn", "uvicorn.error", "uvicorn.access"):
     logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
