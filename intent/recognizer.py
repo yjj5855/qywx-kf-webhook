@@ -5,16 +5,22 @@ from collections import defaultdict
 
 from openai import AsyncOpenAI
 
-from intent.types import IntentResult, IntentType
+from intent.types import IntentResult, IntentType, INTENT_META
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """你是一个消息意图识别助手。分析用户消息，结合对话上下文判断意图并提取关键实体。
+# ---- 系统提示词（意图列表从 INTENT_META 动态生成） ----
+
+_INTENT_LINES = "\n".join(
+    f"- {intent.value}: {meta.prompt_line}"
+    for intent, meta in INTENT_META.items()
+    if intent != IntentType.UNKNOWN
+)
+
+SYSTEM_PROMPT = f"""你是一个消息意图识别助手。分析用户消息，结合对话上下文判断意图并提取关键实体。
 
 ## 支持的意图
-- ADD_FRIEND: 添加好友。如"加好友""加这个手机号""帮我加个人"。
-- CREATE_GROUP: 创建新群。如"建群""创建一个群""新建一个XX群""帮我建个群拉上张三李四"。
-- ADD_MEMBER: 往已有群拉人。如"拉群""拉我进群""把XX拉进产品群""把XX加到群里"。
+{_INTENT_LINES}
 
 ## 实体提取
 针对 ADD_FRIEND：
@@ -27,10 +33,10 @@ SYSTEM_PROMPT = """你是一个消息意图识别助手。分析用户消息，�
 
 ## 输出格式
 只返回一个 JSON 对象：
-{"intent": "<意图>", "confidence": <0.0-1.0>, "target_person": "", "target_group": "", "target_phone": ""}
+{{"intent": "<意图>", "confidence": <0.0-1.0>, "target_person": "", "target_group": "", "target_phone": ""}}
 
 无法识别时返回：
-{"intent": "UNKNOWN", "confidence": 0.0}"""
+{{"intent": "UNKNOWN", "confidence": 0.0}}"""
 
 MAX_HISTORY = 10  # 每个会话最多保留的消息数（5 轮对话）
 
@@ -196,25 +202,24 @@ class IntentRecognizer:
         return intent, confidence, {}
 
 
+# 关键词到意图的映射（从 INTENT_META + 英文枚举名构建）
+_KEYWORD_MAPPING: dict[str, IntentType] = {}
+for _intent, _meta in INTENT_META.items():
+    if _intent == IntentType.UNKNOWN:
+        continue
+    # 英文枚举名和变体
+    _KEYWORD_MAPPING[_intent.value] = _intent
+    # 中文关键词
+    for _kw in _meta.keywords:
+        _KEYWORD_MAPPING[_kw] = _intent
+# 历史兼容的英文别名
+_KEYWORD_MAPPING["INVITE_TO_GROUP"] = IntentType.ADD_MEMBER
+_KEYWORD_MAPPING["INVITE"] = IntentType.ADD_MEMBER
+
+
 def _str_to_intent(text: str) -> IntentType:
     """字符串到意图类型的宽松映射"""
-    mapping: dict[str, IntentType] = {
-        "ADD_FRIEND": IntentType.ADD_FRIEND,
-        "ADD_MEMBER": IntentType.ADD_MEMBER,
-        "CREATE_GROUP": IntentType.CREATE_GROUP,
-        "INVITE_TO_GROUP": IntentType.ADD_MEMBER,
-        "建群": IntentType.CREATE_GROUP,
-        "创建群": IntentType.CREATE_GROUP,
-        "新建群": IntentType.CREATE_GROUP,
-        "拉人入群": IntentType.ADD_MEMBER,
-        "拉人": IntentType.ADD_MEMBER,
-        "拉群": IntentType.ADD_MEMBER,
-        "邀请入群": IntentType.ADD_MEMBER,
-        "加好友": IntentType.ADD_FRIEND,
-        "添加好友": IntentType.ADD_FRIEND,
-        "INVITE": IntentType.ADD_MEMBER,
-    }
-    for key, intent in mapping.items():
+    for key, intent in _KEYWORD_MAPPING.items():
         if key in text:
             return intent
     return IntentType.UNKNOWN

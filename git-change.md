@@ -20,3 +20,4 @@
 - 修复 群聊门控被 at_me 前置检查拦截导致未生效
 - 新增 message_id 消息去重，防止 WorkTool 重复推送
 - 优化 intent 模块日志级别改为 DEBUG，确保 OpenAI 调试日志实际输出
+- 重构 抽离 IntentMeta 统一意图配置，门控和识别器提示词均动态生成

@@ -4,13 +4,24 @@ import logging
 
 from openai import AsyncOpenAI
 
+from intent.types import IntentType, INTENT_META
+
 logger = logging.getLogger(__name__)
 
-GATE_SYSTEM_PROMPT = """\
-你是群聊回复门控器。请判断最后一条消息是否应由机器人在群聊公开回复。
-规则：如果最后一条是在问机器人问题，或者是售前售后咨询/功能答疑/问题排查，则返回 YES；
-如果更像成员间闲聊、互相对话、与机器人无关，则返回 NO。
-只允许输出 YES 或 NO，不要输出其他任何文字。"""
+
+def _build_gate_prompt() -> str:
+    """从 INTENT_META 动态生成门控系统提示词"""
+    intents = "、".join(
+        meta.chinese_name
+        for intent, meta in INTENT_META.items()
+        if intent != IntentType.UNKNOWN
+    )
+    return (
+        "你是群聊回复门控器。请判断最后一条消息是否应由机器人在群聊公开回复。\n"
+        f"规则：如果最后一条消息意图是{intents}，则返回 YES；\n"
+        "如果更像成员间闲聊、互相对话、与机器人无关，则返回 NO。\n"
+        "只允许输出 YES 或 NO，不要输出其他任何文字。"
+    )
 
 
 class GroupReplyGate:
@@ -76,7 +87,7 @@ class GroupReplyGate:
 {recent_context}"""
 
             messages: list[dict[str, str]] = [
-                {"role": "system", "content": GATE_SYSTEM_PROMPT},
+                {"role": "system", "content": _build_gate_prompt()},
                 {"role": "user", "content": user_prompt},
             ]
 
