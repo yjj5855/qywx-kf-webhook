@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from collections import defaultdict
 
@@ -103,13 +104,22 @@ class IntentRecognizer:
             )
         return self._client
 
-    async def recognize(self, spoken: str, session_id: str = "", user: str = "") -> IntentResult:
+    async def recognize(
+        self,
+        spoken: str,
+        session_id: str = "",
+        user: str = "",
+        group_name: str = "",
+        sender_name: str = "",
+    ) -> IntentResult:
         """识别用户消息意图
 
         Args:
             spoken: 用户问题文本
             session_id: 会话唯一标识，用于多轮对话记忆
             user: 用户标识
+            group_name: 群名（群聊时传入，拼入上下文）
+            sender_name: 发送者名称（群聊时传入，拼入上下文）
 
         Returns:
             IntentResult：识别结果；异常或未配置时降级为 UNKNOWN
@@ -120,10 +130,21 @@ class IntentRecognizer:
             return IntentResult(intent=IntentType.UNKNOWN)
 
         try:
+            # 构建用户消息，群聊时附带群名和发送者上下文
+            user_content = spoken
+            if group_name or sender_name:
+                parts: list[str] = []
+                if group_name:
+                    parts.append(f"群名：{group_name}")
+                if sender_name:
+                    parts.append(f"发送者：{sender_name}")
+                parts.append(f"消息：{spoken}")
+                user_content = "\n".join(parts)
+
             messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
             if session_id:
                 messages.extend(self._memory.get(session_id))
-            messages.append({"role": "user", "content": spoken})
+            messages.append({"role": "user", "content": user_content})
 
             logger.info(
                 "意图识别请求 session=%r msg_count=%d spoken=%r",
@@ -131,7 +152,10 @@ class IntentRecognizer:
                 len(messages),
                 spoken[:50],
             )
-            logger.debug("意图识别 OpenAI 请求体 messages=%s", messages)
+            logger.debug(
+                "意图识别 OpenAI 请求体:\n%s",
+                json.dumps(messages, ensure_ascii=False, indent=2),
+            )
 
             response = await client.chat.completions.create(
                 model=self._model,
@@ -142,7 +166,10 @@ class IntentRecognizer:
 
             answer = response.choices[0].message.content or ""
             logger.info("意图识别 OpenAI 返回 raw_answer=%r", answer)
-            logger.debug("意图识别 OpenAI 返回体 raw=%s", response)
+            logger.debug(
+                "意图识别 OpenAI 返回体:\n%s",
+                json.dumps(response.model_dump(), ensure_ascii=False, indent=2, default=str),
+            )
             intent, confidence, entities = self._parse_answer(answer)
 
             if session_id:

@@ -63,8 +63,10 @@ class IntentHandler(MessageHandler):
         )
 
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
-        # 群聊：AI 门控判断是否需要回复（替代简单的 @提及 检查）
-        if req.is_group:
+        at_me = req.at_me in (True, "true")
+
+        # 群聊：未被 @ 时走 AI 门控判断是否需要回复
+        if req.is_group and not at_me:
             recent_context = self._recognizer.get_history(req.session_id)
             should_reply = await self._gate.should_reply(
                 group_name=req.group_remark or req.group_name,
@@ -76,11 +78,13 @@ class IntentHandler(MessageHandler):
                 logger.info("门控判定无需回复，跳过")
                 return ""
 
-        # 意图识别（带多轮对话记忆）
+        # 意图识别（带多轮对话记忆 + 上下文）
         result = await self._recognizer.recognize(
             spoken=req.spoken,
             session_id=req.session_id,
             user=req.received_name,
+            group_name=req.group_remark or req.group_name if req.is_group else "",
+            sender_name=req.received_name,
         )
 
         logger.info(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 
 from openai import AsyncOpenAI
@@ -97,7 +98,10 @@ class GroupReplyGate:
                 sender_name,
                 last_message[:50],
             )
-            logger.debug("门控 OpenAI 请求体 messages=%s", messages)
+            logger.debug(
+                "门控 OpenAI 请求体:\n%s",
+                json.dumps(messages, ensure_ascii=False, indent=2),
+            )
 
             response = await client.chat.completions.create(
                 model=self._model,
@@ -109,7 +113,10 @@ class GroupReplyGate:
             answer = (response.choices[0].message.content or "").strip().upper()
             should = "YES" in answer
             logger.info("门控结果 answer=%r should=%s", answer, should)
-            logger.debug("门控 OpenAI 返回体 raw=%s", response)
+            logger.debug(
+                "门控 OpenAI 返回体:\n%s",
+                json.dumps(response.model_dump(), ensure_ascii=False, indent=2, default=str),
+            )
             return should
 
         except Exception:
