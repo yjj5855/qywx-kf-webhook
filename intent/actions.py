@@ -63,8 +63,76 @@ class AddFriendAction(IntentAction):
             return f"添加好友 {target_phone} 失败，请稍后重试。"
 
 
+async def _add_friends_first(robot_id: str, members: list[str]) -> list[str]:
+    """先对含手机号的成员发起好友申请，返回已申请的成员列表"""
+    from client import get_client
+
+    client = get_client(robot_id)
+    added: list[str] = []
+    for member in members:
+        phone = _extract_phone(member)
+        if phone:
+            try:
+                await client.add_friend_by_phone(
+                    phone=phone,
+                    mark_name=member.replace(phone, "").strip() or phone,
+                    leaving_msg="你好，拉你进群~",
+                )
+                added.append(member)
+                logger.info("已发送好友申请 %s", member)
+            except Exception:
+                logger.exception("添加好友失败 %s", member)
+    return added
+
+
+class AddMemberAction(IntentAction):
+    """拉人进已有群意图处理器（type=207）"""
+
+    intent_type = IntentType.ADD_MEMBER
+
+    async def execute(self, req: CallbackRequest, result: IntentResult, robot_id: str = "") -> str:
+        entities = result.entities
+        target_person = entities.get("target_person", "")
+        target_group = entities.get("target_group", "")
+
+        # 私聊中"拉群""拉我" → 用户自己想进群
+        if not req.is_group and target_person in ("", "我"):
+            target_person = req.received_name or "您"
+
+        # 群聊中没指定人 → 需要问清楚
+        if req.is_group and not target_person:
+            return "请问需要邀请谁加入群呢？请提供姓名、手机号或微信号。"
+
+        # 没指定目标群 → 需要问清楚
+        if not target_group:
+            members_str = f"（成员：{target_person}）" if target_person else ""
+            return f"收到，请问要拉到哪个群呢？{members_str}"
+
+        # 解析成员列表
+        members = [m.strip() for m in target_person.replace("、", ",").split(",") if m.strip()]
+        if req.received_name and req.received_name not in members and not req.is_group:
+            members.insert(0, req.received_name)
+
+        try:
+            # 先加好友
+            added = await _add_friends_first(robot_id, members)
+            # 拉人进已有群（type=207）
+            from client import get_client
+
+            client = get_client(robot_id)
+            resp = await client.update_group(group_name=target_group, add_members=members)
+            logger.info("拉人成功 group=%r members=%s result=%s", target_group, members, resp)
+
+            if added:
+                return f"已向 {', '.join(added)} 发送好友申请，通过后自动拉入群「{target_group}」！"
+            return f"已将 {', '.join(members)} 拉入群「{target_group}」！"
+        except Exception:
+            logger.exception("拉人失败")
+            return f"拉人进群「{target_group}」失败，请稍后重试。"
+
+
 class CreateGroupAction(IntentAction):
-    """拉人入群/创建外部群意图处理器"""
+    """创建新群意图处理器（type=206）"""
 
     intent_type = IntentType.CREATE_GROUP
 
@@ -73,13 +141,9 @@ class CreateGroupAction(IntentAction):
         target_person = entities.get("target_person", "")
         target_group = entities.get("target_group", "")
 
-        # 私聊中"拉群""建群""拉我" → 用户自己也要在群里
+        # 私聊中"建群" → 用户自己也要在群里
         if not req.is_group and target_person in ("", "我"):
             target_person = req.received_name or "您"
-
-        # 群聊中没指定人 → 需要问清楚
-        if req.is_group and not target_person:
-            return "请问需要邀请谁加入群呢？请提供姓名、手机号或微信号。"
 
         # 没指定群名 → 需要问清楚
         if not target_group:
@@ -91,29 +155,13 @@ class CreateGroupAction(IntentAction):
         if req.received_name and req.received_name not in members:
             members.insert(0, req.received_name)
 
-        # 信息齐全 → 先加好友再建群
         try:
+            # 先加好友
+            added = await _add_friends_first(robot_id, members)
+            # 建群（type=206）
             from client import get_client
 
             client = get_client(robot_id)
-
-            # 对每个成员：如果包含手机号则先添加好友
-            added: list[str] = []
-            for member in members:
-                phone = _extract_phone(member)
-                if phone:
-                    try:
-                        await client.add_friend_by_phone(
-                            phone=phone,
-                            mark_name=member.replace(phone, "").strip() or phone,
-                            leaving_msg="你好，拉你进群~",
-                        )
-                        added.append(member)
-                        logger.info("已发送好友申请 %s", member)
-                    except Exception:
-                        logger.exception("添加好友失败 %s", member)
-
-            # 创建群并拉人
             resp = await client.create_group(group_name=target_group, members=members)
             logger.info("建群成功 group=%r members=%s result=%s", target_group, members, resp)
 

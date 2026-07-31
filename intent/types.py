@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 class IntentType(str, Enum):
     """用户消息意图类型"""
 
-    CREATE_GROUP = "CREATE_GROUP"  # 拉人入群/创建外部群
+    CREATE_GROUP = "CREATE_GROUP"  # 创建新群
+    ADD_MEMBER = "ADD_MEMBER"  # 拉人进已有群
     ADD_FRIEND = "ADD_FRIEND"  # 按手机号添加好友
     UNKNOWN = "UNKNOWN"  # 未识别
 

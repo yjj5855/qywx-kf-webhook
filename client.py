@@ -110,6 +110,54 @@ class WorkToolClient:
             item=item,
         )
 
+    async def update_group(
+        self,
+        group_name: str,
+        *,
+        new_name: str = "",
+        add_members: list[str] | None = None,
+        remove_members: list[str] | None = None,
+        announcement: str = "",
+        remark: str = "",
+        template: str = "",
+        show_history: bool = False,
+    ) -> dict:
+        """修改群信息/拉人/踢人（type=207）
+
+        Args:
+            group_name: 待修改的群名（必填，改过备注只能用备注名）
+            new_name: 新群名（选填）
+            add_members: 要拉入的成员昵称列表（选填）
+            remove_members: 要移除的成员昵称列表（选填）
+            announcement: 新群公告（选填）
+            remark: 新群备注（选填）
+            template: 群模板名（选填）
+            show_history: 拉人是否附带历史记录
+        """
+        item: dict = {
+            "type": 207,
+            "groupName": group_name,
+        }
+        if new_name:
+            item["newGroupName"] = new_name
+        if add_members:
+            item["selectList"] = add_members
+        if remove_members:
+            item["removeList"] = remove_members
+        if announcement:
+            item["newGroupAnnouncement"] = announcement
+        if remark:
+            item["groupRemark"] = remark
+        if template:
+            item["groupTemplate"] = template
+        if show_history:
+            item["showMessageHistory"] = True
+
+        return await self._send_raw(
+            robot_id=self.robot_id,
+            item=item,
+        )
+
     # ---- 回调配置 ----
 
     async def bind_callback(self, callback_url: str, callback_type: int = 11) -> dict:

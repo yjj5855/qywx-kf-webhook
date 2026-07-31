@@ -11,3 +11,7 @@
 - 修复 SendMessageRequest 丢弃 groupName/selectList/friend 等非定义字段
 - 新增 _send_raw 方法绕过 Pydantic 序列化保留原始字段
 - 新增 按手机号添加好友和创建外部群 API 文档
+- 新增 ADD_MEMBER 意图调用 update_group(type=207) 拉人进已有群
+- 新增 update_group 方法支持拉人/踢人/改名/改公告等操作
+- 优化 AI 提示词区分 ADD_MEMBER 与 CREATE_GROUP
+- 优化 意图识别失败兜底策略改为告知用户而非复读

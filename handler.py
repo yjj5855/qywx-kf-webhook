@@ -39,7 +39,7 @@ class IntentHandler(MessageHandler):
 
     def __init__(self) -> None:
         from intent.recognizer import IntentRecognizer
-        from intent.actions import AddFriendAction, CreateGroupAction
+        from intent.actions import AddFriendAction, AddMemberAction, CreateGroupAction
         from intent.types import IntentType
 
         self._recognizer = IntentRecognizer(
@@ -49,12 +49,11 @@ class IntentHandler(MessageHandler):
             temperature=settings.intent_temperature,
             confidence_threshold=settings.intent_confidence_threshold,
         )
-        self._actions: dict[IntentType, AddFriendAction | CreateGroupAction] = {
+        self._actions: dict[IntentType, AddFriendAction | AddMemberAction | CreateGroupAction] = {
             IntentType.ADD_FRIEND: AddFriendAction(),
+            IntentType.ADD_MEMBER: AddMemberAction(),
             IntentType.CREATE_GROUP: CreateGroupAction(),
         }
-        self._fallback = EchoHandler()
-
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
         # 群聊仅处理@机器人的消息，私聊全部处理
         if req.is_group and req.at_me not in (True, "true"):
@@ -78,9 +77,9 @@ class IntentHandler(MessageHandler):
         if action is not None:
             return await action.execute(req, result, robot_id)
 
-        # 未匹配：降级到 EchoHandler
-        logger.info("未匹配到 Action，降级到 EchoHandler")
-        return await self._fallback.handle(req, robot_id)
+        # 意图识别失败：告知用户
+        logger.info("意图识别失败 intent=%s，返回提示", result.intent.value)
+        return "抱歉，我没理解您的意思，请换个方式描述一下？"
 
 
 # ---- 全局处理器 ----

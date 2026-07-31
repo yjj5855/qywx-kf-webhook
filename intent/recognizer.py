@@ -12,23 +12,24 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = """你是一个消息意图识别助手。分析用户消息，结合对话上下文判断意图并提取关键实体。
 
 ## 支持的意图
-- ADD_FRIEND: 用户想添加好友。如"加好友""添加好友""加这个手机号""帮我加个人"。
-- CREATE_GROUP: 用户想拉人入群或创建新群。如"拉群""拉我进群""把XX拉进产品群""建群""创建一个群""帮我建个群拉上张三李四"。
+- ADD_FRIEND: 添加好友。如"加好友""加这个手机号""帮我加个人"。
+- CREATE_GROUP: 创建新群。如"建群""创建一个群""新建一个XX群""帮我建个群拉上张三李四"。
+- ADD_MEMBER: 往已有群拉人。如"拉群""拉我进群""把XX拉进产品群""把XX加到群里"。
 
 ## 实体提取
-针对 ADD_FRIEND 提取：
-- target_phone: 对方的手机号（纯数字，如 13800138000）
-- target_person: 对方的姓名/昵称（用作备注，不知道的留空）
+针对 ADD_FRIEND：
+- target_phone: 手机号（纯数字）
+- target_person: 姓名/昵称（备注用，不知道留空）
 
-针对 CREATE_GROUP 提取：
-- target_person: 要拉入群的人（姓名/手机号/微信号，多人用中文顿号分隔如"张三、李四"），说"拉我"则是"我"
+针对 CREATE_GROUP / ADD_MEMBER：
+- target_person: 要拉入群的人（姓名/手机号，多人用中文顿号分隔），说"拉我"则是"我"
 - target_group: 目标群名（不知道的留空）
 
 ## 输出格式
-只返回一个 JSON 对象，不要有其他内容：
+只返回一个 JSON 对象：
 {"intent": "<意图>", "confidence": <0.0-1.0>, "target_person": "", "target_group": "", "target_phone": ""}
 
-如果无法识别意图，返回：
+无法识别时返回：
 {"intent": "UNKNOWN", "confidence": 0.0}"""
 
 MAX_HISTORY = 10  # 每个会话最多保留的消息数（5 轮对话）
@@ -185,17 +186,19 @@ def _str_to_intent(text: str) -> IntentType:
     """字符串到意图类型的宽松映射"""
     mapping: dict[str, IntentType] = {
         "ADD_FRIEND": IntentType.ADD_FRIEND,
+        "ADD_MEMBER": IntentType.ADD_MEMBER,
         "CREATE_GROUP": IntentType.CREATE_GROUP,
-        "INVITE_TO_GROUP": IntentType.CREATE_GROUP,
+        "INVITE_TO_GROUP": IntentType.ADD_MEMBER,
         "建群": IntentType.CREATE_GROUP,
         "创建群": IntentType.CREATE_GROUP,
         "新建群": IntentType.CREATE_GROUP,
-        "拉人入群": IntentType.CREATE_GROUP,
-        "拉人": IntentType.CREATE_GROUP,
-        "邀请入群": IntentType.CREATE_GROUP,
+        "拉人入群": IntentType.ADD_MEMBER,
+        "拉人": IntentType.ADD_MEMBER,
+        "拉群": IntentType.ADD_MEMBER,
+        "邀请入群": IntentType.ADD_MEMBER,
         "加好友": IntentType.ADD_FRIEND,
         "添加好友": IntentType.ADD_FRIEND,
-        "INVITE": IntentType.CREATE_GROUP,
+        "INVITE": IntentType.ADD_MEMBER,
     }
     for key, intent in mapping.items():
         if key in text:
