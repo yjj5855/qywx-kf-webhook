@@ -35,12 +35,13 @@ class SilentHandler(MessageHandler):
 
 
 class IntentHandler(MessageHandler):
-    """意图识别处理器：识别意图后路由到对应 Action"""
+    """意图识别处理器：群聊先经门控判断是否需要回复，再识别意图后路由到对应 Action"""
 
     def __init__(self) -> None:
         from intent.recognizer import IntentRecognizer
         from intent.actions import AddFriendAction, AddMemberAction, CreateGroupAction
         from intent.types import IntentType
+        from intent.gate import GroupReplyGate
 
         self._recognizer = IntentRecognizer(
             base_url=settings.intent_base_url,
@@ -54,10 +55,30 @@ class IntentHandler(MessageHandler):
             IntentType.ADD_MEMBER: AddMemberAction(),
             IntentType.CREATE_GROUP: CreateGroupAction(),
         }
+        self._gate = GroupReplyGate(
+            base_url=settings.intent_base_url,
+            api_key=settings.intent_api_key,
+            model=settings.gate_model or settings.intent_model,
+            temperature=settings.gate_temperature,
+        )
+
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
         # 群聊仅处理@机器人的消息，私聊全部处理
         if req.is_group and req.at_me not in (True, "true"):
             return ""
+
+        # 群聊门控：AI 判断是否需要回复，避免骚扰群成员
+        if req.is_group:
+            recent_context = self._recognizer.get_history(req.session_id)
+            should_reply = await self._gate.should_reply(
+                group_name=req.group_remark or req.group_name,
+                sender_name=req.received_name,
+                last_message=req.spoken,
+                recent_context=recent_context,
+            )
+            if not should_reply:
+                logger.info("门控判定无需回复，跳过")
+                return ""
 
         # 意图识别（带多轮对话记忆）
         result = await self._recognizer.recognize(

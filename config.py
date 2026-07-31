@@ -24,5 +24,9 @@ class Settings(BaseSettings):
     intent_temperature: float = 1.0  # 温度参数（kimi-k2.5 仅支持 1.0）
     intent_confidence_threshold: float = 0.7  # 置信度阈值，低于此值视为 UNKNOWN
 
+    # 群聊回复门控（为空则复用 intent 对应配置）
+    gate_model: str = "kimi-k2.5"  # 门控专用模型，为空则用 intent_model
+    gate_temperature: float = 1.0  # 门控温度参数
+
 
 settings = Settings()

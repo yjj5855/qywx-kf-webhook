@@ -75,6 +75,17 @@ class IntentRecognizer:
         self._memory = ConversationMemory()
         self._client: AsyncOpenAI | None = None
 
+    def get_history(self, session_id: str) -> str:
+        """获取会话历史，格式化为门控可用的上下文字符串"""
+        history = self._memory.get(session_id)
+        if not history:
+            return ""
+        lines: list[str] = []
+        for msg in history:
+            role_label = "用户" if msg["role"] == "user" else "机器人"
+            lines.append(f"{role_label}：{msg['content']}")
+        return "\n".join(lines)
+
     def _get_client(self) -> AsyncOpenAI | None:
         if not self._base_url:
             return None
@@ -114,6 +125,7 @@ class IntentRecognizer:
                 len(messages),
                 spoken[:50],
             )
+            logger.debug("意图识别 OpenAI 请求体 messages=%s", messages)
 
             response = await client.chat.completions.create(
                 model=self._model,
@@ -123,6 +135,8 @@ class IntentRecognizer:
             )
 
             answer = response.choices[0].message.content or ""
+            logger.info("意图识别 OpenAI 返回 raw_answer=%r", answer)
+            logger.debug("意图识别 OpenAI 返回体 raw=%s", response)
             intent, confidence, entities = self._parse_answer(answer)
 
             if session_id:
