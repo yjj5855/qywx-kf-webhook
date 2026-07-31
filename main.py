@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
@@ -105,6 +106,7 @@ async def callback(request: Request):
     robot_id = request.query_params.get("robotId", "")
 
     body = await request.json()
+    logger.info("回调请求 robotId=%r body=%s", robot_id, json.dumps(body, ensure_ascii=False))
     req = CallbackRequest.model_validate(body)
 
     if not robot_id:
