@@ -28,9 +28,12 @@ _log_handler.setFormatter(
     logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
 )
 
+# 根 logger 捕获所有模块日志
+_root_logger = logging.getLogger()
+_root_logger.setLevel(logging.INFO)
+_root_logger.addHandler(_log_handler)
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(_log_handler)
 
 
 @asynccontextmanager

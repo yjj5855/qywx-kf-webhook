@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     intent_base_url: str = ""  # 接口基础地址（如 https://api.moonshot.cn/v1），为空则不启用
     intent_api_key: str = ""  # API 密钥
     intent_model: str = "kimi-k2.5"  # 模型名称
+    intent_temperature: float = 1.0  # 温度参数（kimi-k2.5 仅支持 1.0）
     intent_confidence_threshold: float = 0.7  # 置信度阈值，低于此值视为 UNKNOWN
 
 

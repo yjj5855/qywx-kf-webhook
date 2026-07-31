@@ -53,11 +53,13 @@ class IntentRecognizer:
         base_url: str = "",
         api_key: str = "",
         model: str = "gpt-4o-mini",
+        temperature: float = 1.0,
         confidence_threshold: float = 0.7,
     ) -> None:
         self._base_url = base_url
         self._api_key = api_key
         self._model = model
+        self._temperature = temperature
         self._confidence_threshold = confidence_threshold
         self._memory = ConversationMemory()
         self._client: AsyncOpenAI | None = None
@@ -105,7 +107,7 @@ class IntentRecognizer:
             response = await client.chat.completions.create(
                 model=self._model,
                 messages=messages,
-                temperature=0.1,
+                temperature=self._temperature,
             )
 
             answer = response.choices[0].message.content or ""

@@ -18,3 +18,5 @@
 - 新增 scene 属性描述 room_type 场景描述
 - 优化 日志收到消息时增加 scene 场景描述
 - 修复 env_file 改为绝对路径避免 CWD 变化导致配置读取失败
+- 修复 temperature 硬编码 0.1 导致 kimi-k2.5 返回 400 降级为复读
+- 修复 日志配到根 logger 避免子模块错误丢失到 stdout

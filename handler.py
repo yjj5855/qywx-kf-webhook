@@ -46,6 +46,7 @@ class IntentHandler(MessageHandler):
             base_url=settings.intent_base_url,
             api_key=settings.intent_api_key,
             model=settings.intent_model,
+            temperature=settings.intent_temperature,
             confidence_threshold=settings.intent_confidence_threshold,
         )
         self._actions: dict[IntentType, InviteToGroupAction] = {
