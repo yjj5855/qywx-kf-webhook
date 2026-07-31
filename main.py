@@ -50,7 +50,8 @@ async def _process_message(req: CallbackRequest, robot_id: str) -> None:
     """异步处理消息，通过 send_text 回复"""
     try:
         logger.info(
-            "收到消息 session=%r spoken=%r at_me=%r",
+            "收到消息 scene=%s session=%r spoken=%r at_me=%r",
+            req.scene,
             req.session_id,
             req.spoken,
             req.at_me,

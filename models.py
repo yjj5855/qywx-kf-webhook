@@ -21,6 +21,18 @@ class CallbackRequest(BaseModel):
     file_base64: str = Field(default="", alias="fileBase64")
     message_id: str = Field(default="", alias="messageId")
 
+    _ROOM_TYPE_MAP: dict[int, str] = {
+        1: "外部群",
+        2: "外部联系人",
+        3: "内部群",
+        4: "内部联系人",
+    }
+
+    @property
+    def scene(self) -> str:
+        """场景描述"""
+        return self._ROOM_TYPE_MAP.get(self.room_type, f"未知({self.room_type})")
+
     @property
     def is_group(self) -> bool:
         return self.room_type in (1, 3)

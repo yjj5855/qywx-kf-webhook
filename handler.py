@@ -19,10 +19,10 @@ class MessageHandler(ABC):
 
 
 class EchoHandler(MessageHandler):
-    """复读机处理器（Demo）：仅回复@机器人的消息"""
+    """复读机处理器（Demo）：群聊仅回复@消息，私聊全部回复"""
 
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
-        if req.at_me not in (True, "true"):
+        if req.is_group and req.at_me not in (True, "true"):
             return ""
         return req.spoken
 
@@ -54,8 +54,8 @@ class IntentHandler(MessageHandler):
         self._fallback = EchoHandler()
 
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
-        # 仅处理@机器人的消息
-        if req.at_me not in (True, "true"):
+        # 群聊仅处理@机器人的消息，私聊全部处理
+        if req.is_group and req.at_me not in (True, "true"):
             return ""
 
         # 意图识别（带多轮对话记忆）

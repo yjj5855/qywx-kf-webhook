@@ -14,3 +14,6 @@
 - 新增 intent_base_url、intent_api_key、intent_model 配置项
 - 优化日志输出改为 session_id 标识
 - 新增 openai 依赖
+- 新增 私聊场景忽略@判断，全部消息均回复
+- 新增 scene 属性描述 room_type 场景描述
+- 优化 日志收到消息时增加 scene 场景描述
