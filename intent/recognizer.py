@@ -82,6 +82,21 @@ class IntentRecognizer:
         self._memory = ConversationMemory()
         self._client: AsyncOpenAI | None = None
 
+    def remember(
+        self, session_id: str, user_msg: str, reply_text: str, sender_name: str = ""
+    ) -> None:
+        """记录一轮对话到记忆（用户消息 + 机器人实际回复文案）
+
+        Args:
+            session_id: 会话唯一标识
+            user_msg: 用户原始消息
+            reply_text: 机器人实际回复文案
+            sender_name: 发送者名称，用于在上下文中区分不同发言人
+        """
+        if session_id and reply_text:
+            content = f"{sender_name}：{user_msg}" if sender_name else user_msg
+            self._memory.add(session_id, content, reply_text)
+
     def get_history(self, session_id: str) -> str:
         """获取会话历史，格式化为门控可用的上下文字符串"""
         history = self._memory.get(session_id)
@@ -89,8 +104,10 @@ class IntentRecognizer:
             return ""
         lines: list[str] = []
         for msg in history:
-            role_label = "用户" if msg["role"] == "user" else "机器人"
-            lines.append(f"{role_label}：{msg['content']}")
+            if msg["role"] == "user":
+                lines.append(msg["content"])  # 内容中已包含发送者名称
+            else:
+                lines.append(f"机器人：{msg['content']}")
         return "\n".join(lines)
 
     def _get_client(self) -> AsyncOpenAI | None:
@@ -171,9 +188,6 @@ class IntentRecognizer:
                 json.dumps(response.model_dump(), ensure_ascii=False, indent=2, default=str),
             )
             intent, confidence, entities = self._parse_answer(answer)
-
-            if session_id:
-                self._memory.add(session_id, spoken, answer)
 
             logger.info(
                 "意图识别完成 session=%r intent=%s confidence=%.2f entities=%s",

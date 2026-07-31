@@ -96,11 +96,14 @@ class IntentHandler(MessageHandler):
         # 匹配 Action 执行
         action = self._actions.get(result.intent)
         if action is not None:
-            return await action.execute(req, result, robot_id)
+            reply = await action.execute(req, result, robot_id)
+        else:
+            logger.info("未匹配到意图 intent=%s，返回兜底回复", result.intent.value)
+            reply = "抱歉，我没理解您的意思，请换个方式描述一下？"
 
-        # 意图识别失败：告知用户
-        logger.info("意图识别失败 intent=%s，返回提示", result.intent.value)
-        return "抱歉，我没理解您的意思，请换个方式描述一下？"
+        # 记录对话记忆（存储实际回复文案 + 发送者名称，非 AI 原始 JSON）
+        self._recognizer.remember(req.session_id, req.spoken, reply, req.received_name)
+        return reply
 
 
 # ---- 全局处理器 ----

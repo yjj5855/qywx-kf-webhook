@@ -92,7 +92,7 @@ async def _process_message(req: CallbackRequest, robot_id: str) -> None:
             result = await client.send_text(to=req.chat_id, content=reply_text)
             logger.info("回复成功 chat_id=%r reply=%r result=%s", req.chat_id, reply_text, result)
         else:
-            logger.info("未触发回复 at_me=%r", req.at_me)
+            logger.info("无需回复 chat_id=%r", req.chat_id)
     except Exception:
         logger.exception("处理消息失败 robot_id=%s", robot_id)
 
