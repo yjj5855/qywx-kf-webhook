@@ -5,12 +5,12 @@
 ## [开发中]
 
 ### 回调服务
-- 新增 FastAPI 回调接口，接收 WorkTool 消息推送
-- 新增异步消息处理机制，避免阻塞回调响应
-- 新增 WorkToolClient 异步客户端，支持发送消息和回调配置管理
-- 新增 MessageHandler 处理器抽象，支持 Echo/Silent 两种默认处理器
-- 新增 Pydantic 数据模型，规范回调请求和API交互
-- 新增配置管理，支持环境变量
-- 新增 EchoHandler 增加 atMe 判断，仅当消息@机器人时才回复
-- 新增 RotatingFileHandler 滚动日志，单文件最大 2MB，保留 5 个备份
-- 新增 _processMessage 异常捕获和详细日志记录
+- 新增 intent 模块，支持 OpenAI 兼容接口的意图识别
+- 新增 IntentRecognizer 使用 AsyncOpenAI 库简化调用
+- 新增 ConversationMemory 按 session_id 维护多轮对话历史
+- 新增 IntentHandler 根据意图路由到对应 Action
+- 新增 InviteToGroupAction 处理拉人入群意图
+- 新增 session_id 属性，按群/人唯一标识会话
+- 新增 intent_base_url、intent_api_key、intent_model 配置项
+- 优化日志输出改为 session_id 标识
+- 新增 openai 依赖

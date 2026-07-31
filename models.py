@@ -32,6 +32,11 @@ class CallbackRequest(BaseModel):
             return self.group_remark or self.group_name
         return self.received_name
 
+    @property
+    def session_id(self) -> str:
+        """多轮对话唯一标识：room_type + chat_id，全局唯一"""
+        return f"{self.room_type}:{self.chat_id}"
+
 
 # ---- 回调响应（符合官方规范：3 秒内返回） ----
 

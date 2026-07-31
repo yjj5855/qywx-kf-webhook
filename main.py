@@ -50,11 +50,10 @@ async def _process_message(req: CallbackRequest, robot_id: str) -> None:
     """异步处理消息，通过 send_text 回复"""
     try:
         logger.info(
-            "收到消息 spoken=%r at_me=%r room_type=%d chat_id=%r",
+            "收到消息 session=%r spoken=%r at_me=%r",
+            req.session_id,
             req.spoken,
             req.at_me,
-            req.room_type,
-            req.chat_id,
         )
         handler = get_handler(robot_id)
         reply_text = await handler.handle(req, robot_id)
@@ -77,6 +76,10 @@ async def callback(request: Request):
 
     body = await request.json()
     req = CallbackRequest.model_validate(body)
+
+    if not robot_id:
+        logger.warning("回调缺少 robotId 参数，请确认回调地址包含 ?robotId=xxx")
+        return CallbackResponse(code=-1, message="缺少 robotId").model_dump()
 
     # 异步处理消息，避免阻塞回调响应
     asyncio.create_task(_process_message(req, robot_id))
