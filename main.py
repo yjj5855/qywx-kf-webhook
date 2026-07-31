@@ -28,11 +28,17 @@ _log_handler.setFormatter(
     logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
 )
 
-# 根 logger 捕获所有模块日志（防 uvicorn reload 重复添加）
-_root_logger = logging.getLogger()
-_root_logger.setLevel(logging.INFO)
-if not any(isinstance(h, RotatingFileHandler) for h in _root_logger.handlers):
-    _root_logger.addHandler(_log_handler)
+# 只给项目模块挂 handler，避免 uvicorn 的 handler 也写 app.log 造成重复
+_project_loggers = ("main", "handler", "client", "intent")
+for _name in _project_loggers:
+    _pkg = logging.getLogger(_name)
+    _pkg.setLevel(logging.INFO)
+    _pkg.addHandler(_log_handler)
+    _pkg.propagate = False  # 不往根 logger 传播，避免重复
+
+# 静默第三方库日志
+for _noisy in ("watchfiles.main", "httpx", "httpx._client", "uvicorn", "uvicorn.error", "uvicorn.access"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 

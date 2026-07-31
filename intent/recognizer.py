@@ -81,7 +81,7 @@ class IntentRecognizer:
             self._client = AsyncOpenAI(
                 api_key=self._api_key or "sk-placeholder",
                 base_url=self._base_url,
-                timeout=10.0,
+                timeout=60.0,
             )
         return self._client
 
