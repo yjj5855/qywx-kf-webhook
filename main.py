@@ -35,7 +35,7 @@ _project_loggers = ("main", "handler", "client", "intent")
 for _name in _project_loggers:
     _pkg = logging.getLogger(_name)
     _pkg.setLevel(logging.INFO)
-    if _log_handler not in _pkg.handlers:
+    if not _pkg.handlers:
         _pkg.addHandler(_log_handler)
     _pkg.propagate = False  # 不往根 logger 传播，避免重复
 
@@ -129,4 +129,4 @@ async def health():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host=settings.host, port=settings.port, reload=True)
+    uvicorn.run(app, host=settings.host, port=settings.port)
