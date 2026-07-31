@@ -63,11 +63,7 @@ class IntentHandler(MessageHandler):
         )
 
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
-        # 群聊仅处理@机器人的消息，私聊全部处理
-        if req.is_group and req.at_me not in (True, "true"):
-            return ""
-
-        # 群聊门控：AI 判断是否需要回复，避免骚扰群成员
+        # 群聊：AI 门控判断是否需要回复（替代简单的 @提及 检查）
         if req.is_group:
             recent_context = self._recognizer.get_history(req.session_id)
             should_reply = await self._gate.should_reply(
