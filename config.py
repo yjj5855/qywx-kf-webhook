@@ -1,8 +1,14 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    model_config = {"env_prefix": "WT_", "env_file": ".env", "extra": "ignore"}
+    model_config = {
+        "env_prefix": "WT_",
+        "env_file": str(Path(__file__).parent / ".env"),
+        "extra": "ignore",
+    }
 
     # 回调服务
     host: str = "0.0.0.0"
