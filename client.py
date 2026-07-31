@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 
 from config import settings
-from models import BindCallbackRequest, SendMessageRequest
+from models import BindCallbackRequest
 
 
 class WorkToolClient:
@@ -44,12 +44,7 @@ class WorkToolClient:
         }
         if at_list:
             item["atList"] = at_list
-        body = SendMessageRequest(list=[item])
-        return await self._post(
-            "/wework/sendRawMessage",
-            params={"robotId": self.robot_id},
-            json=body.model_dump(by_alias=True),
-        )
+        return await self._send_raw(robot_id=self.robot_id, item=item)
 
     # ---- 好友与群管理 ----
 
@@ -76,15 +71,9 @@ class WorkToolClient:
         if tag_list:
             friend["tagList"] = tag_list
 
-        item: dict = {
-            "type": 213,
-            "friend": friend,
-        }
-        body = SendMessageRequest(list=[item])
-        return await self._post(
-            "/wework/sendRawMessage",
-            params={"robotId": self.robot_id},
-            json=body.model_dump(by_alias=True),
+        return await self._send_raw(
+            robot_id=self.robot_id,
+            item={"type": 213, "friend": friend},
         )
 
     async def create_group(
@@ -116,11 +105,9 @@ class WorkToolClient:
         if template:
             item["groupTemplate"] = template
 
-        body = SendMessageRequest(list=[item])
-        return await self._post(
-            "/wework/sendRawMessage",
-            params={"robotId": self.robot_id},
-            json=body.model_dump(by_alias=True),
+        return await self._send_raw(
+            robot_id=self.robot_id,
+            item=item,
         )
 
     # ---- 回调配置 ----
@@ -152,6 +139,15 @@ class WorkToolClient:
         )
 
     # ---- 内部方法 ----
+
+    async def _send_raw(self, robot_id: str, item: dict) -> dict:
+        """发送原始指令（不经过 Pydantic 模型，保留所有字段）"""
+        body = {"socketType": 2, "list": [item]}
+        return await self._post(
+            "/wework/sendRawMessage",
+            params={"robotId": robot_id},
+            json=body,
+        )
 
     async def _post(self, path: str, **kwargs) -> dict:
         client = await self._get_client()
