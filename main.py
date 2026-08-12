@@ -36,8 +36,7 @@ _project_loggers = ("__main__", "main", "handler", "client", "intent")
 for _name in _project_loggers:
     _pkg = logging.getLogger(_name)
     _pkg.setLevel(logging.INFO)
-    if not _pkg.handlers:
-        _pkg.addHandler(_log_handler)
+    _pkg.addHandler(_log_handler)
     _pkg.propagate = False  # 不往根 logger 传播，避免重复
 
 # intent 子模块（gate 等）需要 DEBUG 级别输出 OpenAI 请求/返回详情

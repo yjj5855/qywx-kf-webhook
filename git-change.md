@@ -5,6 +5,7 @@
 ## [开发中]
 
 ### 回调服务
+- 修复 _pkg.handlers 非空时跳过 addHandler 导致项目日志未写入 app.log
 - 修复 uvicorn 启动时 _project_loggers 只含 __main__ 导致 logger 未挂文件 handler，日志未写入 app.log
 - 修复 日志重复输出（uvicorn.run 传 app 替代 "main:app" 避免二次导入，关闭热重载）
 - 修复 watchfiles/httpx/uvicorn 刷屏问题（设为 WARNING 级别）
