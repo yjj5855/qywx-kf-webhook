@@ -32,7 +32,7 @@ _log_handler.setFormatter(
 )
 
 # 只给项目模块挂 handler，避免 uvicorn 的 handler 也写 app.log 造成重复
-_project_loggers = ("__main__", "handler", "client", "intent")
+_project_loggers = ("__main__", "main", "handler", "client", "intent")
 for _name in _project_loggers:
     _pkg = logging.getLogger(_name)
     _pkg.setLevel(logging.INFO)
