@@ -37,17 +37,5 @@ class Settings(BaseSettings):
     # 知识库索引方式：economy=关键词索引（免向量模型，默认）/ high_quality=语义索引（需 Dify 配置 Embedding 模型）
     dify_dataset_indexing: str = "economy"
 
-    # 图片服务（为空则用 base64 内联传给 AI）
-    public_base_url: str = ""  # 服务器外网地址（如 https://example.com），用于生成图片 URL
-
-    # ---- 旧代码实现（意图识别）已迁移到 Dify，以下字段仅作兼容保留 ----
-    intent_base_url: str = ""
-    intent_api_key: str = ""
-    intent_model: str = "kimi-k2.5"
-    intent_temperature: float = 1.0
-    intent_confidence_threshold: float = 0.7
-    gate_model: str = "kimi-k2.5"
-    gate_temperature: float = 1.0
-
 
 settings = Settings()

@@ -60,4 +60,19 @@
 ### 文档
 - 新增 worktool 客服执行文档、接口说明与客户群列表 CSV
 
+### 意图识别
+- 删除 src/intent 整个模块（recognizer/gate/actions/types），意图识别已迁移到 Dify 工作流
+
+### 图片识别
+- 删除 src/image_utils.py 图片本地保存与外网 URL 生成逻辑
+
+### WorkTool 客户端
+- 删除 好友/群管理方法（加好友/建群/拉人/改群/回调绑定），已迁移到客服操作工作流
+- 删除 SendMessageRequest/BindCallbackRequest 等发送与回调配置模型
+
+### 回调服务清理
+- 删除 IntentHandler 与 SilentHandler，仅保留 Dify 主工作流处理器并以 Echo 兜底
+- 删除 静态文件服务挂载与 intent 模块 DEBUG 日志配置
+- 删除 旧意图识别与图片服务配置字段及 openai 依赖
+
 ---

@@ -9,7 +9,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
 
 from src.api_bindings import router as bindings_router
 from src.api_memory import router as memory_router
@@ -34,15 +33,12 @@ _log_handler.setFormatter(
 )
 
 # 只给项目模块挂 handler，避免 uvicorn 的 handler 也写 app.log 造成重复
-_project_loggers = ("__main__", "main", "handler", "client", "intent")
+_project_loggers = ("__main__", "main", "handler", "client")
 for _name in _project_loggers:
     _pkg = logging.getLogger(_name)
     _pkg.setLevel(logging.INFO)
     _pkg.addHandler(_log_handler)
     _pkg.propagate = False  # 不往根 logger 传播，避免重复
-
-# intent 子模块（gate 等）需要 DEBUG 级别输出 OpenAI 请求/返回详情
-logging.getLogger("intent").setLevel(logging.DEBUG)
 
 # 静默第三方库日志
 for _noisy in ("httpx", "httpx._client", "uvicorn", "uvicorn.error", "uvicorn.access"):
@@ -69,7 +65,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="WorkTool Callback Service", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=str(Path(__file__).resolve().parent / "static")), name="static")
 app.include_router(bindings_router, prefix="/api")
 app.include_router(memory_router, prefix="/api")
 

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from pydantic import BaseModel, Field
 
 
@@ -57,28 +55,7 @@ class CallbackResponse(BaseModel):
     message: str = "参数接收成功"
 
 
-# ---- 发送消息 ----
-
-class MessageItem(BaseModel):
-    type: int = 203  # 203=文本消息
-    title_list: List[str] = Field(default_factory=list, alias="titleList")
-    received_content: str = Field(default="", alias="receivedContent")
-    at_list: List[str] = Field(default_factory=list, alias="atList")
-
-
-class SendMessageRequest(BaseModel):
-    socket_type: int = Field(default=2, alias="socketType")
-    list: List[MessageItem] = Field(default_factory=list)
-
-
-# ---- 回调配置 ----
-
-class BindCallbackRequest(BaseModel):
-    callback_url: str = Field(alias="callbackUrl")
-    callback_type: int = Field(default=11, alias="callbackType")  # 11=消息回调
-
-
-# ---- 群绑定管理（公司信息查询用） ----
+# ---- 群绑定管理（公司信息查询/知识库用） ----
 
 class BindingItem(BaseModel):
     platform: str = "wecom"      # 群平台：wecom/feishu/dingtalk
