@@ -1227,7 +1227,7 @@ workflow:
           data:
           - id: key-value-qa
             key: ''
-            type: raw-text
+            type: text
             value: |-
               {
                 "inputs": {},
@@ -1281,7 +1281,7 @@ workflow:
           data:
           - id: key-value-worktool
             key: ''
-            type: raw-text
+            type: text
             value: |-
               {
                 "inputs": {
@@ -1341,7 +1341,7 @@ workflow:
           data:
           - id: key-value-company
             key: ''
-            type: raw-text
+            type: text
             value: |-
               {
                 "inputs": {
@@ -1447,7 +1447,8 @@ workflow:
               """解析 WorkTool 操作子工作流的响应，提取 reply_text。"""
               try:
                   data = json.loads(body or "{}")
-                  result = data.get("result") or {}
+                  # 新版 Dify 输出在 data.outputs，旧版在顶层 result
+                  result = (data.get("data") or {}).get("outputs") or data.get("result") or {}
                   if isinstance(result, str):
                       result = json.loads(result) if result else {}
                   return {"reply_text": (result or {}).get("reply_text", "")}
@@ -1500,7 +1501,8 @@ workflow:
               }
               try:
                   data = json.loads(body or "{}")
-                  result = data.get("result") or {}
+                  # 新版 Dify 输出在 data.outputs，旧版在顶层 result
+                  result = (data.get("data") or {}).get("outputs") or data.get("result") or {}
                   if isinstance(result, str):
                       result = json.loads(result) if result else {}
                   result = result or {}

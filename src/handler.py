@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from src.config import settings
 from src.models import CallbackRequest
@@ -9,22 +11,56 @@ from src.models import CallbackRequest
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class HandleResult:
+    """消息处理结果，供上层决定是否由 webhook 发送回复。
+
+    - reply_text 非空：需要 webhook 主动发送（工作流失败兜底 / 公司查询路径）；
+    - sent_internally=True：回复已由主工作流内部直接发到群里，webhook 不重复发送；
+    - 两者皆空：本次不产生回复（如门控跳过），reason 说明原因。
+    """
+
+    reply_text: str = ""
+    sent_internally: bool = False
+    reason: str = ""
+
+
+def _extract_reply_text(value: str) -> str:
+    """从工作流 final_text 中提取纯文本回复。
+
+    新版 Dify 结束节点可能输出形如 {"reply_text": "..."} 的 JSON 字符串，
+    这里兼容解包；解不开则原样返回。
+    """
+    text = (value or "").strip()
+    if not text:
+        return ""
+    try:
+        obj = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return text
+    if isinstance(obj, dict):
+        for key in ("reply_text", "answer", "text", "final_text"):
+            if obj.get(key):
+                return str(obj[key]).strip()
+    return text
+
+
 class MessageHandler(ABC):
     """消息处理器基类"""
 
     @abstractmethod
-    async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
-        """处理消息，返回回复文本。空字符串表示不回复。"""
+    async def handle(self, req: CallbackRequest, robot_id: str = "") -> HandleResult:
+        """处理消息，返回处理结果（回复文本 + 发送方式说明）。"""
         ...
 
 
 class EchoHandler(MessageHandler):
     """复读机处理器（兜底）：群聊仅回复@消息，私聊全部回复"""
 
-    async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
+    async def handle(self, req: CallbackRequest, robot_id: str = "") -> HandleResult:
         if req.is_group and req.at_me not in (True, "true"):
-            return ""
-        return req.spoken
+            return HandleResult(reason="群聊未@，不回复")
+        return HandleResult(reply_text=req.spoken, reason="复读机兜底")
 
 
 class DifyWorkflowHandler(MessageHandler):
@@ -74,7 +110,7 @@ class DifyWorkflowHandler(MessageHandler):
             "recentContext": self._memory.to_context(req.session_id),
         }
 
-    async def handle(self, req: CallbackRequest, robot_id: str = "") -> str:
+    async def handle(self, req: CallbackRequest, robot_id: str = "") -> HandleResult:
         session_id = req.session_id
         convo = self._sessions.get(session_id)
         user_msg = req.spoken or ("[图片]" if req.text_type == 2 else "")
@@ -86,7 +122,10 @@ class DifyWorkflowHandler(MessageHandler):
             )
         except Exception as exc:
             logger.exception("调用 Dify 主工作流失败 session=%r", session_id)
-            return f"抱歉，服务暂时不可用，请稍后再试。（{type(exc).__name__}）"
+            return HandleResult(
+                reply_text=f"抱歉，服务暂时不可用，请稍后再试。（{type(exc).__name__}）",
+                reason=f"Dify 主工作流调用失败（{type(exc).__name__}）",
+            )
 
         # 持久化 QA Chatflow 会话 ID（意图识别已改为工作流内普通 LLM，无需 conversationId）
         qa_id = (outputs.get("qaConversationId") or "").strip()
@@ -98,15 +137,20 @@ class DifyWorkflowHandler(MessageHandler):
             reply = await self._handle_company_query(req, outputs)
             if reply:
                 self._memory.append(session_id, user_msg, reply, req.received_name)
-            return reply
+            return HandleResult(reply_text=reply, reason="公司信息查询（应用层执行后由 webhook 回复）")
 
         # 其余路径（问答/操作/追问）的回复由主工作流内部发送，这里把 (用户消息, 最终回复)
         # 记入服务端记忆，供下轮意图分类注入上下文（Dify 不支持改写聊天记录的历史会话）
-        final_text = (outputs.get("final_text") or "").strip()
+        final_text = _extract_reply_text(outputs.get("final_text") or "")
         if final_text:
             self._memory.append(session_id, user_msg, final_text, req.received_name)
         logger.info("Dify 工作流已处理 session=%r outputs=%s", session_id, outputs)
-        return ""
+        if final_text:
+            return HandleResult(
+                sent_internally=True,
+                reason="问答/操作/追问已由主工作流内部直接回复，webhook 不重复发送",
+            )
+        return HandleResult(reason="主工作流未产生回复（门控跳过或无输出）")
 
     async def _handle_company_query(self, req: CallbackRequest, outputs: dict) -> str:
         # 回调只有群名，按群名反查绑定（group_id 为 G 编码稳定标识）

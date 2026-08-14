@@ -32,8 +32,17 @@ _log_handler.setFormatter(
     logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
 )
 
-# 只给项目模块挂 handler，避免 uvicorn 的 handler 也写 app.log 造成重复
-_project_loggers = ("__main__", "main", "handler", "client")
+# 只给项目模块挂 handler，避免 uvicorn 的 handler 也写 app.log 造成重复。
+# 注意：以 `python -m src.main` 运行时模块全名带 "src." 前缀，两种名字都要覆盖，
+# 否则 handler/dify_client 等模块的日志只会打到 stderr，app.log 里看不到。
+_project_loggers = (
+    "__main__",
+    "main", "handler", "client", "dify_client", "exporter", "kb",
+    "binding", "session_store", "memory", "company", "api_bindings", "api_memory",
+    "src.main", "src.handler", "src.client", "src.dify_client",
+    "src.exporter", "src.kb", "src.binding", "src.session_store",
+    "src.memory", "src.company", "src.api_bindings", "src.api_memory",
+)
 for _name in _project_loggers:
     _pkg = logging.getLogger(_name)
     _pkg.setLevel(logging.INFO)
@@ -92,13 +101,24 @@ async def _process_message(req: CallbackRequest, robot_id: str) -> None:
             req.at_me,
         )
         handler = get_handler(robot_id)
-        reply_text = await handler.handle(req, robot_id)
-        if reply_text:
+        result = await handler.handle(req, robot_id)
+        if result.reply_text:
             client = get_client(robot_id)
-            result = await client.send_text(to=req.chat_id, content=reply_text)
-            logger.info("回复成功 chat_id=%r reply=%r result=%s", req.chat_id, reply_text, result)
+            send_result = await client.send_text(to=req.chat_id, content=result.reply_text)
+            logger.info(
+                "webhook 已回复 chat_id=%r reason=%r reply=%r worktool=%s",
+                req.chat_id, result.reason, result.reply_text, send_result,
+            )
+        elif result.sent_internally:
+            logger.info(
+                "主工作流内部已直接回复 chat_id=%r（webhook 不重复发送）",
+                req.chat_id,
+            )
         else:
-            logger.info("无需回复 chat_id=%r", req.chat_id)
+            logger.info(
+                "本次不回复 chat_id=%r（%s）",
+                req.chat_id, result.reason or "未产生回复",
+            )
     except Exception:
         logger.exception("处理消息失败 robot_id=%s", robot_id)
 

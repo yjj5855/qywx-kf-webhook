@@ -58,14 +58,29 @@ class DifyWorkflowClient:
         except httpx.HTTPError as exc:
             raise DifyError(f"Dify 工作流调用失败：{exc}") from exc
 
-        # result 在新版本 Dify 中是 dict，旧版本可能是 JSON 字符串，两种都兼容
-        result = data.get("result") if isinstance(data, dict) else None
+        if not isinstance(data, dict):
+            logger.warning("Dify 工作流返回异常 data=%r", data)
+            return {}
+
+        # 兼容两种响应结构：
+        # - 新版 Dify：结束节点输出在 data.outputs（顶层无 result 字段）
+        # - 旧版 Dify：输出在顶层 result（可能是 dict 或 JSON 字符串）
+        result = data.get("result")
         if isinstance(result, str):
             try:
                 result = json.loads(result)
             except (json.JSONDecodeError, TypeError):
-                result = {}
+                result = None
         if not isinstance(result, dict):
-            logger.warning("Dify 工作流返回异常 result=%r", result)
+            inner = data.get("data")
+            if isinstance(inner, dict):
+                result = inner.get("outputs")
+                if isinstance(result, str):
+                    try:
+                        result = json.loads(result)
+                    except (json.JSONDecodeError, TypeError):
+                        result = None
+        if not isinstance(result, dict):
+            logger.warning("Dify 工作流返回异常（无输出字段）data=%r", data)
             return {}
         return result
