@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import httpx
 
-from config import settings
-from models import BindCallbackRequest
+from src.config import settings
+from src.models import BindCallbackRequest
 
 
 class WorkToolClient:

@@ -1,0 +1,310 @@
+app:
+  description: 公司信息查询子工作流 — 接收主工作流传来的查询类型/关键词/期间，输出结构化查询动作（action=company_info_query）交给应用层用群绑定 company_id 调用公司接口；参数不齐全时输出追问文本 reply_text。
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  icon_type: emoji
+  mode: workflow
+  name: 公司信息查询
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/deepseek:0.0.19@1aa3c64e2f50179afe8410ad79412dab92bf5919a27da8e2b13071b5e5f8ce81
+    version: null
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: 公司信息查询子工作流已就绪。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: e_start_query
+      selected: false
+      source: start
+      sourceHandle: source
+      target: code_company_query
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: e_query_end
+      selected: false
+      source: code_company_query
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: 查询参数入口
+        type: start
+        variables:
+        - label: spoken
+          max_length: 256
+          required: false
+          type: text-input
+          variable: spoken
+        - label: sender_name
+          max_length: 128
+          required: false
+          type: text-input
+          variable: sender_name
+        - label: query_type
+          max_length: 64
+          required: false
+          type: text-input
+          variable: query_type
+        - label: keyword
+          max_length: 128
+          required: false
+          type: text-input
+          variable: keyword
+        - label: period
+          max_length: 64
+          required: false
+          type: text-input
+          variable: period
+      height: 250
+      id: start
+      position:
+        x: 0
+        y: 320
+      positionAbsolute:
+        x: 0
+        y: 320
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          import json
+
+          # 查询类型 → 中文名（用于追问提示）
+          QUERY_TYPE_NAMES = {
+              "employee_info": "员工信息",
+              "company_bill": "公司账单",
+              "financial_data": "财务数据",
+              "hr_data": "人事数据",
+              "social_security_progress": "社保公积金办理进度",
+          }
+
+          # 常见中文关键词 → 查询类型（意图模型漏填时兜底识别）
+          QUERY_TYPE_ALIAS = [
+              ("员工", "employee_info"),
+              ("账单", "company_bill"),
+              ("财务", "financial_data"),
+              ("人事", "hr_data"),
+              ("社保", "social_security_progress"),
+              ("公积金", "social_security_progress"),
+              ("进度", "social_security_progress"),
+          ]
+
+          def main(query_type: str, keyword: str, period: str, spoken: str, sender_name: str = ""):
+              """
+              构建公司信息查询动作：参数齐全 → 交给应用层执行；否则 → 追问。
+              输出契约（供主工作流/应用层解析）：
+                action=company_info_query 时：reply_text 为空，应用层用群绑定 company_id 调公司接口；
+                action 为空时：reply_text 为追问文本。
+              params 携带 sender_name，供应用层做权限校验/审计。
+              """
+              qt = (query_type or "").strip().lower()
+              if not qt:
+                  text = (spoken or "").lower()
+                  for alias, canonical in QUERY_TYPE_ALIAS:
+                      if alias in text:
+                          qt = canonical
+                          break
+
+              if not qt:
+                  lines = "\n".join(f"{i}. {name}" for i, name in enumerate(QUERY_TYPE_NAMES.values(), 1))
+                  greeting = f"{sender_name}，" if sender_name else ""
+                  return {
+                      "reply_text": f"{greeting}请问您要查询哪类公司信息？\n{lines}",
+                      "action": "",
+                      "query_type": "",
+                      "keyword": "",
+                      "period": "",
+                      "params": "",
+                  }
+
+              params = {"query_type": qt, "keyword": keyword, "period": period, "sender_name": sender_name}
+              return {
+                  "reply_text": "",
+                  "action": "company_info_query",
+                  "query_type": qt,
+                  "keyword": keyword,
+                  "period": period,
+                  "params": json.dumps(params, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          action:
+            children: null
+            type: string
+          keyword:
+            children: null
+            type: string
+          params:
+            children: null
+            type: string
+          period:
+            children: null
+            type: string
+          query_type:
+            children: null
+            type: string
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 构建公司信息查询请求
+        type: code
+        variables:
+        - value_selector:
+          - start
+          - query_type
+          value_type: string
+          variable: query_type
+        - value_selector:
+          - start
+          - keyword
+          value_type: string
+          variable: keyword
+        - value_selector:
+          - start
+          - period
+          value_type: string
+          variable: period
+        - value_selector:
+          - start
+          - spoken
+          variable: spoken
+        - value_selector:
+          - start
+          - sender_name
+          value_type: string
+          variable: sender_name
+      height: 52
+      id: code_company_query
+      position:
+        x: 340
+        y: 320
+      positionAbsolute:
+        x: 340
+        y: 320
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - type: string
+          value_selector:
+          - code_company_query
+          - reply_text
+          variable: reply_text
+        - type: string
+          value_selector:
+          - code_company_query
+          - action
+          variable: action
+        - type: string
+          value_selector:
+          - code_company_query
+          - query_type
+          variable: query_type
+        - type: string
+          value_selector:
+          - code_company_query
+          - keyword
+          variable: keyword
+        - type: string
+          value_selector:
+          - code_company_query
+          - period
+          variable: period
+        - type: string
+          value_selector:
+          - code_company_query
+          - params
+          variable: params
+        selected: false
+        title: 结束
+        type: end
+      height: 88
+      id: end
+      position:
+        x: 700
+        y: 320
+      positionAbsolute:
+        x: 700
+        y: 320
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 1
+  rag_pipeline_variables: []

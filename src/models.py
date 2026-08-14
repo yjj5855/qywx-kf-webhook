@@ -76,3 +76,14 @@ class SendMessageRequest(BaseModel):
 class BindCallbackRequest(BaseModel):
     callback_url: str = Field(alias="callbackUrl")
     callback_type: int = Field(default=11, alias="callbackType")  # 11=消息回调
+
+
+# ---- 群绑定管理（公司信息查询用） ----
+
+class BindingItem(BaseModel):
+    platform: str = "wecom"      # 群平台：wecom/feishu/dingtalk
+    group_id: str                # 群标识（群备注名优先，无则群名）
+    group_name: str = ""         # 群名称
+    company_ids: str = ""        # 公司ID列表，顿号分隔（兼容逗号/分号），如 "1001、1002"
+    workflow_app_id: str = ""    # 预留：Dify 客服 Workflow 应用 ID
+    memory_dataset_id: str = ""  # 群专属 Dify 知识库 ID（群聊天记录导出用）

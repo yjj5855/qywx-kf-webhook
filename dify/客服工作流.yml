@@ -1,0 +1,1895 @@
+app:
+  description: WorkTool 回调消息处理入口工作流 — 接收企业微信消息回调，经 AI 门控与大类分类后，路由到对应的子工作流（客服问答 / WorkTool 操作 / 公司信息查询）执行，并统一通过 WorkTool API 回复。
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  icon_type: emoji
+  mode: workflow
+  name: WorkTool 回调消息处理
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/deepseek:0.0.19@1aa3c64e2f50179afe8410ad79412dab92bf5919a27da8e2b13071b5e5f8ce81
+    version: null
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: WorkTool API 基础地址
+    id: env_api_base_url
+    name: WT_API_BASE_URL
+    selector:
+    - env
+    - WT_API_BASE_URL
+    value: https://api.worktool.ymdyes.cn
+    value_type: string
+  - description: 机器人 ID
+    id: env_robot_id
+    name: WT_ROBOT_ID
+    selector:
+    - env
+    - WT_ROBOT_ID
+    value: wtgxpt9udc4pb4hgj0rnn139gfwcc6ls
+    value_type: string
+  - description: 各 Dify 应用所在的 Dify 基础地址
+    id: env_dify_base_url
+    name: DIFY_BASE_URL
+    selector:
+    - env
+    - DIFY_BASE_URL
+    value: http://192.168.31.204
+    value_type: string
+  - description: 客服问答 Chatflow（客服QA应用，需配置知识库）的 API Key
+    id: env_dify_qa_app_key
+    name: DIFY_QA_APP_KEY
+    selector:
+    - env
+    - DIFY_QA_APP_KEY
+    value: ''
+    value_type: secret
+  - description: WorkTool 操作子工作流（客服操作工作流应用）的 API Key
+    id: env_dify_worktool_app_key
+    name: DIFY_WORKTOOL_APP_KEY
+    selector:
+    - env
+    - DIFY_WORKTOOL_APP_KEY
+    value: ''
+    value_type: secret
+  - description: 公司信息查询子工作流（公司信息查询工作流应用）的 API Key
+    id: env_dify_company_app_key
+    name: DIFY_COMPANY_APP_KEY
+    selector:
+    - env
+    - DIFY_COMPANY_APP_KEY
+    value: ''
+    value_type: secret
+  - description: 意图识别置信度阈值
+    id: env_confidence_threshold
+    name: CONFIDENCE_THRESHOLD
+    selector:
+    - env
+    - CONFIDENCE_THRESHOLD
+    value: 0.7
+    value_type: float
+  - description: 服务器外网地址，用于生成图片 URL
+    id: env_public_base_url
+    name: PUBLIC_BASE_URL
+    selector:
+    - env
+    - PUBLIC_BASE_URL
+    value: ''
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: WorkTool 企业微信消息回调处理入口工作流已就绪。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: e_start_validate
+      selected: false
+      source: start
+      sourceHandle: source
+      target: code_validate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_validate_unsupported
+      selected: false
+      source: code_validate
+      sourceHandle: source
+      target: if_unsupported
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_unsupported_true_fallback
+      selected: false
+      source: if_unsupported
+      sourceHandle: 'true'
+      target: code_fallback
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: e_unsupported_false_gate
+      selected: false
+      source: if_unsupported
+      sourceHandle: 'false'
+      target: if_gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: e_gate_true_llm
+      selected: false
+      source: if_gate
+      sourceHandle: 'true'
+      target: llm_gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: e_gate_false_intent
+      selected: false
+      source: if_gate
+      sourceHandle: 'false'
+      target: llm_intent
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: e_llm_normalize
+      selected: false
+      source: llm_gate
+      sourceHandle: source
+      target: code_gate_normalize
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_normalize_result
+      selected: false
+      source: code_gate_normalize
+      sourceHandle: source
+      target: if_gate_result
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: e_result_true_intent
+      selected: false
+      source: if_gate_result
+      sourceHandle: 'true'
+      target: llm_intent
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: end
+      id: e_result_false_skip
+      selected: false
+      source: if_gate_result
+      sourceHandle: 'false'
+      target: end_gate_skip
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: e_intent_parse
+      selected: false
+      source: llm_intent
+      sourceHandle: source
+      target: code_parse_intent
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_parseintent_route
+      selected: false
+      source: code_parse_intent
+      sourceHandle: source
+      target: if_category_route
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: e_route_qa
+      selected: false
+      source: if_category_route
+      sourceHandle: qa
+      target: http_qa
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: e_route_worktool
+      selected: false
+      source: if_category_route
+      sourceHandle: worktool
+      target: http_worktool_flow
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: e_route_company
+      selected: false
+      source: if_category_route
+      sourceHandle: company
+      target: http_company_flow
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_route_false_fallback
+      selected: false
+      source: if_category_route
+      sourceHandle: 'false'
+      target: code_fallback
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: e_qa_parse
+      selected: false
+      source: http_qa
+      sourceHandle: source
+      target: code_parse_qa
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: e_worktool_parse
+      selected: false
+      source: http_worktool_flow
+      sourceHandle: source
+      target: code_parse_worktool
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: e_company_parse
+      selected: false
+      source: http_company_flow
+      sourceHandle: source
+      target: code_parse_company
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_company_check
+      selected: false
+      source: code_parse_company
+      sourceHandle: source
+      target: if_company_action
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: end
+      id: e_company_true_end
+      selected: false
+      source: if_company_action
+      sourceHandle: 'true'
+      target: end_company_action
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_company_false_final
+      selected: false
+      source: if_company_action
+      sourceHandle: 'false'
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_qa_final
+      selected: false
+      source: code_parse_qa
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_worktool_final
+      selected: false
+      source: code_parse_worktool
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_fallback_final
+      selected: false
+      source: code_fallback
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_final_sendtext
+      selected: false
+      source: code_final_text
+      sourceHandle: source
+      target: code_send_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: e_sendtext_http
+      selected: false
+      source: code_send_text
+      sourceHandle: source
+      target: http_send_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: end
+      id: e_http_end
+      selected: false
+      source: http_send_text
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: Webhook 回调入口
+        type: start
+        variables:
+        - label: spoken
+          max_length: 256
+          required: true
+          type: text-input
+          variable: spoken
+        - label: rawSpoken
+          max_length: 256
+          required: false
+          type: text-input
+          variable: rawSpoken
+        - hide: false
+          label: receivedName
+          max_length: 256
+          required: false
+          type: text-input
+          variable: receivedName
+        - label: groupName
+          max_length: 256
+          required: false
+          type: text-input
+          variable: groupName
+        - label: groupRemark
+          max_length: 256
+          required: false
+          type: text-input
+          variable: groupRemark
+        - label: roomType
+          max_length: 10
+          required: false
+          type: number
+          variable: roomType
+        - label: atMe
+          max_length: 20
+          required: false
+          type: checkbox
+          variable: atMe
+        - label: textType
+          max_length: 10
+          required: false
+          type: number
+          variable: textType
+        - label: fileBase64
+          max_length: 256
+          required: false
+          type: text-input
+          variable: fileBase64
+        - label: messageId
+          max_length: 128
+          required: false
+          type: text-input
+          variable: messageId
+        - label: qaConversationId
+          max_length: 128
+          required: false
+          type: text-input
+          variable: qaConversationId
+        - label: recentContext
+          max_length: 2048
+          required: false
+          type: text-input
+          variable: recentContext
+      height: 420
+      id: start
+      position:
+        x: 0
+        y: 320
+      positionAbsolute:
+        x: 0
+        y: 320
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          def main(
+              spoken: str,
+              rawSpoken: str,
+              receivedName: str,
+              groupName: str,
+              groupRemark: str,
+              roomType: int,
+              atMe,
+              textType: int,
+              fileBase64: str,
+              messageId: str,
+          ):
+              # 是否群聊 (roomType 1=外部群 3=内部群)
+              is_group = roomType in (1, 3)
+
+              # 是否被 @
+              at_me = str(atMe).lower() in ("true", "1", "yes")
+
+              # 是否是图片消息
+              is_image = textType == 2
+
+              # 不支持的媒体类型：0=未知 3=语音 5=视频 7=小程序 8=链接 9=文件
+              # （1=文本 2=图片 13=合并记录 15=带回复文本 视为可处理）
+              is_unsupported = textType not in (1, 2, 13, 15)
+
+              # 会话标识：群聊用群备注/群名，单聊用联系人名称
+              chat_id = (groupRemark or groupName) if is_group else receivedName
+              session_id = f"{roomType}:{chat_id}"
+
+              # 门控消息文本：图片时用占位
+              gate_msg = spoken or ("[图片]" if is_image else "")
+
+              # 场景描述
+              scene_map = {1: "外部群", 2: "外部联系人", 3: "内部群", 4: "内部联系人"}
+              scene = scene_map.get(roomType, f"未知({roomType})")
+
+              # 是否需要门控 (群聊 + 未@)
+              need_gate = is_group and not at_me
+
+              return {
+                  "is_group": is_group,
+                  "at_me": at_me,
+                  "is_image": is_image,
+                  "is_unsupported": is_unsupported,
+                  "chat_id": chat_id,
+                  "session_id": session_id,
+                  "gate_msg": gate_msg,
+                  "scene": scene,
+                  "need_gate": need_gate,
+                  "spoken": spoken,
+                  "receivedName": receivedName,
+                  "groupName": groupName,
+                  "groupRemark": groupRemark,
+                  "fileBase64": fileBase64,
+                  "messageId": messageId,
+                  "roomType": roomType,
+                  "text_type": textType,
+              }
+        code_language: python3
+        outputs:
+          at_me:
+            children: null
+            type: boolean
+          chat_id:
+            children: null
+            type: string
+          fileBase64:
+            children: null
+            type: string
+          gate_msg:
+            children: null
+            type: string
+          groupName:
+            children: null
+            type: string
+          groupRemark:
+            children: null
+            type: string
+          is_group:
+            children: null
+            type: boolean
+          is_image:
+            children: null
+            type: boolean
+          is_unsupported:
+            children: null
+            type: boolean
+          messageId:
+            children: null
+            type: string
+          need_gate:
+            children: null
+            type: boolean
+          receivedName:
+            children: null
+            type: string
+          roomType:
+            children: null
+            type: number
+          scene:
+            children: null
+            type: string
+          session_id:
+            children: null
+            type: string
+          spoken:
+            children: null
+            type: string
+          text_type:
+            children: null
+            type: number
+        selected: false
+        title: 校验 & 预处理
+        type: code
+        variables:
+        - value_selector:
+          - start
+          - spoken
+          variable: spoken
+        - value_selector:
+          - start
+          - rawSpoken
+          variable: rawSpoken
+        - value_selector:
+          - start
+          - receivedName
+          variable: receivedName
+        - value_selector:
+          - start
+          - groupName
+          variable: groupName
+        - value_selector:
+          - start
+          - groupRemark
+          variable: groupRemark
+        - value_selector:
+          - start
+          - roomType
+          variable: roomType
+        - value_selector:
+          - start
+          - atMe
+          variable: atMe
+        - value_selector:
+          - start
+          - textType
+          variable: textType
+        - value_selector:
+          - start
+          - fileBase64
+          variable: fileBase64
+        - value_selector:
+          - start
+          - messageId
+          variable: messageId
+      height: 52
+      id: code_validate
+      position:
+        x: 300
+        y: 320
+      positionAbsolute:
+        x: 300
+        y: 320
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_validate
+            - is_unsupported
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 是否不支持的媒体类型？
+        type: if-else
+      height: 148
+      id: if_unsupported
+      position:
+        x: 620
+        y: 320
+      positionAbsolute:
+        x: 620
+        y: 320
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_validate
+            - need_gate
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 需要门控判断？（false=私聊或已被@，直接放行）
+        type: if-else
+      height: 148
+      id: if_gate
+      position:
+        x: 940
+        y: 240
+      positionAbsolute:
+        x: 940
+        y: 240
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        memory: null
+        model:
+          completion_params: {}
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_config:
+          jinja2_variables: []
+        prompt_template:
+        - id: prompt_gate_system
+          role: system
+          text: |-
+            你是群聊回复门控器。请判断最后一条消息是否应由机器人在群聊公开回复。
+
+            规则：如果最后一条消息意图是建群、拉人进群、添加好友、查询公司信息（员工/账单/财务/人事/社保公积金等），或是对机器人的客服提问（咨询业务、产品、服务等问题），则返回 YES；
+            如果更像成员间闲聊、互相对话、与机器人无关，则返回 NO。
+
+            输出要求：最后一行只输出 YES 或 NO（思考过程可以写在 <thinking> 标签里，但最终判定必须单独一行）。
+        - id: prompt_gate_user
+          role: user
+          text: |-
+            群名：{{#code_validate.groupRemark#}} 或 {{#code_validate.groupName#}}
+            发送者：{{#code_validate.receivedName#}}
+            最后一条消息：{{#code_validate.gate_msg#}}
+        reasoning_format: tagged
+        selected: false
+        structured_output: null
+        structured_output_switch_on: false
+        title: AI 门控判断
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 88
+      id: llm_gate
+      position:
+        x: 1260
+        y: 140
+      positionAbsolute:
+        x: 1260
+        y: 140
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          import re
+
+          def main(llm_text: str):
+              """归一化门控 LLM 输出：去掉思考标签，取最后一个非空行判定 YES/NO。"""
+              if not llm_text:
+                  return {"gate_pass": False, "gate_raw": ""}
+              text = llm_text.strip()
+              # 去掉思考块（兼容 <thinking> 与 <think> 标签）
+              text = re.sub(r"<thinking>.*?</thinking>", "", text, flags=re.S)
+              text = re.sub(r"<think>.*?</think>", "", text, flags=re.S)
+              text = text.strip()
+              lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+              last = (lines[-1] if lines else text).upper()
+              return {
+                  "gate_pass": last == "YES" or last.startswith("YES"),
+                  "gate_raw": text,
+              }
+        code_language: python3
+        outputs:
+          gate_pass:
+            children: null
+            type: boolean
+          gate_raw:
+            children: null
+            type: string
+        selected: false
+        title: 门控结果归一化
+        type: code
+        variables:
+        - value_selector:
+          - llm_gate
+          - text
+          value_type: string
+          variable: llm_text
+      height: 52
+      id: code_gate_normalize
+      position:
+        x: 1580
+        y: 140
+      positionAbsolute:
+        x: 1580
+        y: 140
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_gate_normalize
+            - gate_pass
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 门控是否放行？
+        type: if-else
+      height: 124
+      id: if_gate_result
+      position:
+        x: 1900
+        y: 240
+      positionAbsolute:
+        x: 1900
+        y: 240
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        memory: null
+        model:
+          completion_params: {}
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_config:
+          jinja2_variables: []
+        prompt_template:
+        - id: prompt_intent_system
+          role: system
+          text: |-
+            你是一个消息意图识别助手。分析用户消息，结合对话上下文（可能包含【历史对话】）判断意图并提取关键实体。
+
+            消息格式说明：
+            - 【历史对话】部分（"用户: ... / 机器人: ..."）仅作为上下文参考，用于理解多轮语境；
+            - 只对【当前消息】之后的内容进行意图识别与实体提取，不要对【历史对话】中的内容做识别。
+
+            ## 支持的意图
+            - CREATE_GROUP: 建群。如"建群""创建一个群""新建一个XX群""帮我建个群拉上张三李四"。
+            - ADD_MEMBER: 拉人进群。如"拉群""拉我进群""把XX拉进产品群""把XX加到群里"。
+            - ADD_FRIEND: 添加好友。如"加好友""加这个手机号""帮我加个人"。
+            - CUSTOMER_SERVICE_QA: 客服问答。如"你们产品怎么收费""怎么退款""物流到哪了""你们公司有什么产品"等咨询业务、产品、服务的问题，或用户主动向机器人咨询的普通提问。
+            - COMPANY_INFO_QUERY: 查询公司内部数据。如查员工信息、公司账单、财务数据、人事数据、社保公积金办理进度等。典型话术："查一下张三的工资""看下上个月账单""社保办到哪一步了""我们公司财务数据"。
+            - UNKNOWN: 无法识别为以上任何意图。
+
+            ## 意图区分（重要）：COMPANY_INFO_QUERY 与 CUSTOMER_SERVICE_QA 严格区分
+            - 只有当用户要查询"某个公司的具体内部数据"（员工、账单、财务、人事、社保公积金等）时才判为 COMPANY_INFO_QUERY。
+            - 一般咨询产品、价格、政策、业务规则等通用问题（不涉及查询某公司具体数据）判为 CUSTOMER_SERVICE_QA。
+            - 消息含"查/查询/查看/进度/账单/工资/社保/公积金/员工/人事/财务"等词且对象是公司内部数据时，优先判为 COMPANY_INFO_QUERY。
+
+            ## 实体提取
+            针对 ADD_FRIEND：
+            - target_phone: 手机号（纯数字）
+            - target_person: 姓名/昵称（备注用，不知道留空）
+
+            针对 CREATE_GROUP / ADD_MEMBER：
+            - target_person: 要拉入群的人（姓名/手机号，多人用中文顿号分隔），说"拉我"则填"我"
+            - target_group: 目标群名（不知道的留空）
+
+            针对 COMPANY_INFO_QUERY：
+            - query_type: 查询类型，取值 employee_info(员工信息)/company_bill(公司账单)/financial_data(财务数据)/hr_data(人事数据)/social_security_progress(社保公积金办理进度)，无法确定留空
+            - keyword: 查询关键词（如员工姓名、单号），没有留空
+            - period: 查询期间（如"3月""上个月""2025年"），没有留空
+            - target_person/target_group/target_phone: 留空
+
+            针对 CUSTOMER_SERVICE_QA：不需要提取实体，三个字段全部留空。
+
+            ## 多轮补全规则（重要）
+            如果【历史对话】中上一轮意图是 CREATE_GROUP/ADD_MEMBER/ADD_FRIEND/COMPANY_INFO_QUERY，且本轮消息补充了上一轮缺失的信息（例如群名、人名、查询类型、关键词、期间），必须结合历史对话中已提取的实体，把缺失字段补全后输出。
+            示例：
+            历史上一轮：{"intent":"ADD_MEMBER","target_person":"张三","target_group":""}，本轮消息："产品群"
+            输出：{"intent":"ADD_MEMBER","target_person":"张三","target_group":"产品群"}
+            如果本轮消息仍不足以补全所有缺失字段，缺失字段保持为空。
+
+            ## 大类输出
+            category 表示消息所属的大类，取值 WORKTOOL_OP / QA / COMPANY_QUERY / UNKNOWN：
+            - WORKTOOL_OP: 加好友/拉人/建群等需要执行 WorkTool 操作的消息
+            - QA: 客服问答（CUSTOMER_SERVICE_QA）
+            - COMPANY_QUERY: 查询公司内部数据（COMPANY_INFO_QUERY）
+            - UNKNOWN: 无法识别
+            category 必须由 intent 推导：ADD_FRIEND/ADD_MEMBER/CREATE_GROUP → WORKTOOL_OP；CUSTOMER_SERVICE_QA → QA；COMPANY_INFO_QUERY → COMPANY_QUERY；UNKNOWN → UNKNOWN。
+
+            ## 输出格式
+            只返回一个 JSON 对象，不要输出其他任何文字：
+            {"intent": "<意图>", "confidence": 0.0-1.0, "category": "<大类>", "target_person": "", "target_group": "", "target_phone": "", "query_type": "", "keyword": "", "period": ""}
+
+            无法识别时返回：
+            {"intent": "UNKNOWN", "confidence": 0.0, "category": "UNKNOWN", "target_person": "", "target_group": "", "target_phone": "", "query_type": "", "keyword": "", "period": ""}
+        - id: prompt_intent_user
+          role: user
+          text: |-
+            {{#start.recentContext#}}
+            【当前消息】
+            {{#code_validate.receivedName#}}:{{#code_validate.gate_msg#}}
+        reasoning_format: tagged
+        selected: false
+        structured_output: null
+        structured_output_switch_on: false
+        title: 意图识别
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 88
+      id: llm_intent
+      position:
+        x: 2860
+        y: 320
+      positionAbsolute:
+        x: 2860
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          import json
+
+          # 意图 → 大类映射（模型未输出 category 时兜底推导）
+          CATEGORY_MAP = {
+              "ADD_FRIEND": "WORKTOOL_OP",
+              "ADD_MEMBER": "WORKTOOL_OP",
+              "CREATE_GROUP": "WORKTOOL_OP",
+              "CUSTOMER_SERVICE_QA": "QA",
+              "COMPANY_INFO_QUERY": "COMPANY_QUERY",
+          }
+
+          def main(llm_output, confidence_threshold: float):
+              """
+              解析意图 LLM 返回的 JSON，校验置信度阈值并推导大类。
+              llm_output 可能是 JSON 字符串（可能带思考标签），也可能是已解析的 dict。
+              """
+              default = {
+                  "intent": "UNKNOWN",
+                  "confidence": 0.0,
+                  "target_person": "",
+                  "target_group": "",
+                  "target_phone": "",
+                  "query_type": "",
+                  "keyword": "",
+                  "period": "",
+                  "category": "UNKNOWN",
+              }
+
+              if not llm_output:
+                  return default
+
+              try:
+                  if isinstance(llm_output, dict):
+                      data = llm_output
+                  else:
+                      import re
+
+                      raw = str(llm_output)
+                      raw = re.sub(r"<thinking>.*?</thinking>", "", raw, flags=re.S)
+                      raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.S)
+                      data = json.loads(raw.strip())
+                  if not isinstance(data, dict):
+                      data = default
+
+                  intent_str = str(data.get("intent", "UNKNOWN")).upper().strip()
+                  try:
+                      confidence = float(data.get("confidence", 0.0) or 0.0)
+                  except (TypeError, ValueError):
+                      confidence = 0.0
+                  target_person = str(data.get("target_person", ""))
+                  target_group = str(data.get("target_group", ""))
+                  target_phone = str(data.get("target_phone", ""))
+                  query_type = str(data.get("query_type", "")).strip().lower()
+                  keyword = str(data.get("keyword", ""))
+                  period = str(data.get("period", ""))
+
+                  # 置信度低于阈值 → UNKNOWN
+                  if confidence < confidence_threshold:
+                      intent_str = "UNKNOWN"
+                      confidence = 0.0
+
+                  # 兼容别名，统一意图名
+                  if intent_str in ("QA", "CUSTOMER_QA", "CUSTOMER_SERVICE", "QA_QUESTION"):
+                      intent_str = "CUSTOMER_SERVICE_QA"
+                  if intent_str in ("COMPANY_QUERY", "COMPANY_INFO", "QUERY_COMPANY"):
+                      intent_str = "COMPANY_INFO_QUERY"
+
+                  # 大类：优先取模型输出，非法值则按意图推导
+                  category = str(data.get("category", "")).strip().upper()
+                  if category not in CATEGORY_MAP.values():
+                      category = CATEGORY_MAP.get(intent_str, "UNKNOWN")
+
+                  return {
+                      "intent": intent_str,
+                      "confidence": min(max(confidence, 0.0), 1.0),
+                      "target_person": target_person,
+                      "target_group": target_group,
+                      "target_phone": target_phone,
+                      "query_type": query_type,
+                      "keyword": keyword,
+                      "period": period,
+                      "category": category,
+                  }
+              except (json.JSONDecodeError, ValueError, TypeError):
+                  # 降级：纯文本匹配
+                  text_upper = str(llm_output).strip().upper()
+                  if "CREATE_GROUP" in text_upper:
+                      return {**default, "intent": "CREATE_GROUP", "confidence": 0.9, "category": "WORKTOOL_OP"}
+                  if "ADD_MEMBER" in text_upper:
+                      return {**default, "intent": "ADD_MEMBER", "confidence": 0.9, "category": "WORKTOOL_OP"}
+                  if "ADD_FRIEND" in text_upper:
+                      return {**default, "intent": "ADD_FRIEND", "confidence": 0.9, "category": "WORKTOOL_OP"}
+                  return default
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          category:
+            children: null
+            type: string
+          confidence:
+            children: null
+            type: number
+          intent:
+            children: null
+            type: string
+          keyword:
+            children: null
+            type: string
+          period:
+            children: null
+            type: string
+          query_type:
+            children: null
+            type: string
+          target_group:
+            children: null
+            type: string
+          target_person:
+            children: null
+            type: string
+          target_phone:
+            children: null
+            type: string
+        selected: false
+        title: 解析意图并推导大类
+        type: code
+        variables:
+        - value_selector:
+          - llm_intent
+          - text
+          value_type: string
+          variable: llm_output
+        - value_selector:
+          - env
+          - CONFIDENCE_THRESHOLD
+          variable: confidence_threshold
+      height: 52
+      id: code_parse_intent
+      position:
+        x: 3500
+        y: 320
+      positionAbsolute:
+        x: 3500
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: qa
+          conditions:
+          - comparison_operator: is
+            value: QA
+            varType: string
+            variable_selector:
+            - code_parse_intent
+            - category
+          id: qa
+          logical_operator: and
+        - case_id: worktool
+          conditions:
+          - comparison_operator: is
+            value: WORKTOOL_OP
+            varType: string
+            variable_selector:
+            - code_parse_intent
+            - category
+          id: worktool
+          logical_operator: and
+        - case_id: company
+          conditions:
+          - comparison_operator: is
+            value: COMPANY_QUERY
+            varType: string
+            variable_selector:
+            - code_parse_intent
+            - category
+          id: company
+          logical_operator: and
+        selected: false
+        title: 大类路由
+        type: if-else
+      height: 292
+      id: if_category_route
+      position:
+        x: 3820
+        y: 260
+      positionAbsolute:
+        x: 3820
+        y: 260
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - id: key-value-qa
+            key: ''
+            type: raw-text
+            value: |-
+              {
+                "inputs": {},
+                "query": "{{#code_validate.receivedName#}}:{{#code_validate.spoken#}}",
+                "response_mode": "blocking",
+                "conversation_id": "{{#start.qaConversationId#}}",
+                "user": "{{#code_validate.session_id#}}",
+                "files": []
+              }
+          type: raw-text
+        desc: ''
+        headers: |-
+          Content-Type: application/json
+          Authorization: Bearer {{#env.DIFY_QA_APP_KEY#}}
+        isInIteration: false
+        isInLoop: false
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 300
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 调用客服问答 Chatflow
+        type: http-request
+        url: '{{#env.DIFY_BASE_URL#}}/v1/chat-messages'
+        variables: []
+      height: 108
+      id: http_qa
+      position:
+        x: 4140
+        y: 120
+      positionAbsolute:
+        x: 4140
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - id: key-value-worktool
+            key: ''
+            type: raw-text
+            value: |-
+              {
+                "inputs": {
+                  "spoken": "{{#code_validate.spoken#}}",
+                  "receivedName": "{{#code_validate.receivedName#}}",
+                  "is_group": {{#code_validate.is_group#}},
+                  "chat_id": "{{#code_validate.chat_id#}}",
+                  "intent": "{{#code_parse_intent.intent#}}",
+                  "target_person": "{{#code_parse_intent.target_person#}}",
+                  "target_group": "{{#code_parse_intent.target_group#}}",
+                  "target_phone": "{{#code_parse_intent.target_phone#}}"
+                },
+                "response_mode": "blocking",
+                "user": "{{#code_validate.session_id#}}"
+              }
+          type: raw-text
+        desc: ''
+        headers: |-
+          Content-Type: application/json
+          Authorization: Bearer {{#env.DIFY_WORKTOOL_APP_KEY#}}
+        isInIteration: false
+        isInLoop: false
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 300
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 调用 WorkTool 操作子工作流
+        type: http-request
+        url: '{{#env.DIFY_BASE_URL#}}/v1/workflows/run'
+        variables: []
+      height: 108
+      id: http_worktool_flow
+      position:
+        x: 4140
+        y: 260
+      positionAbsolute:
+        x: 4140
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - id: key-value-company
+            key: ''
+            type: raw-text
+            value: |-
+              {
+                "inputs": {
+                  "spoken": "{{#code_validate.spoken#}}",
+                  "sender_name": "{{#code_validate.receivedName#}}",
+                  "query_type": "{{#code_parse_intent.query_type#}}",
+                  "keyword": "{{#code_parse_intent.keyword#}}",
+                  "period": "{{#code_parse_intent.period#}}"
+                },
+                "response_mode": "blocking",
+                "user": "{{#code_validate.session_id#}}"
+              }
+          type: raw-text
+        desc: ''
+        headers: |-
+          Content-Type: application/json
+          Authorization: Bearer {{#env.DIFY_COMPANY_APP_KEY#}}
+        isInIteration: false
+        isInLoop: false
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 300
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 调用公司信息查询子工作流
+        type: http-request
+        url: '{{#env.DIFY_BASE_URL#}}/v1/workflows/run'
+        variables: []
+      height: 108
+      id: http_company_flow
+      position:
+        x: 4140
+        y: 400
+      positionAbsolute:
+        x: 4140
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          import json
+
+          def main(body: str) -> dict:
+              """解析客服 QA Chatflow 的响应，提取 answer 与 conversation_id。"""
+              try:
+                  data = json.loads(body or "{}")
+                  return {
+                      "answer": data.get("answer", ""),
+                      "qa_conversation_id": data.get("conversation_id", ""),
+                  }
+              except Exception:
+                  return {"answer": "", "qa_conversation_id": ""}
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          answer:
+            children: null
+            type: string
+          qa_conversation_id:
+            children: null
+            type: string
+        selected: false
+        title: 解析客服QA响应
+        type: code
+        variables:
+        - value_selector:
+          - http_qa
+          - body
+          value_type: string
+          variable: body
+      height: 52
+      id: code_parse_qa
+      position:
+        x: 4460
+        y: 120
+      positionAbsolute:
+        x: 4460
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          import json
+
+          def main(body: str) -> dict:
+              """解析 WorkTool 操作子工作流的响应，提取 reply_text。"""
+              try:
+                  data = json.loads(body or "{}")
+                  result = data.get("result") or {}
+                  if isinstance(result, str):
+                      result = json.loads(result) if result else {}
+                  return {"reply_text": (result or {}).get("reply_text", "")}
+              except Exception:
+                  return {"reply_text": ""}
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 解析 WorkTool 操作结果
+        type: code
+        variables:
+        - value_selector:
+          - http_worktool_flow
+          - body
+          value_type: string
+          variable: body
+      height: 52
+      id: code_parse_worktool
+      position:
+        x: 4460
+        y: 260
+      positionAbsolute:
+        x: 4460
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          import json
+
+          def main(body: str) -> dict:
+              """解析公司信息查询子工作流的响应：reply_text（追问或空）+ action（交给应用层执行）。"""
+              default = {
+                  "reply_text": "",
+                  "action": "",
+                  "query_type": "",
+                  "keyword": "",
+                  "period": "",
+                  "params": "",
+              }
+              try:
+                  data = json.loads(body or "{}")
+                  result = data.get("result") or {}
+                  if isinstance(result, str):
+                      result = json.loads(result) if result else {}
+                  result = result or {}
+                  out = {}
+                  for k, dv in default.items():
+                      v = result.get(k, dv)
+                      out[k] = str(v) if v is not None else dv
+                  return out
+              except Exception:
+                  return default
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          action:
+            children: null
+            type: string
+          keyword:
+            children: null
+            type: string
+          params:
+            children: null
+            type: string
+          period:
+            children: null
+            type: string
+          query_type:
+            children: null
+            type: string
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 解析公司信息查询结果
+        type: code
+        variables:
+        - value_selector:
+          - http_company_flow
+          - body
+          value_type: string
+          variable: body
+      height: 52
+      id: code_parse_company
+      position:
+        x: 4460
+        y: 400
+      positionAbsolute:
+        x: 4460
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          def main(text_type: int = 1, scene: str = ""):
+              """
+              兜底回复：不支持的媒体类型给专门提示；未知大类/意图给通用提示。
+              """
+              unsupported = {0: "未知类型", 3: "语音", 5: "视频", 7: "小程序", 8: "链接", 9: "文件"}
+              if text_type in unsupported:
+                  name = unsupported[text_type]
+                  return {
+                      "reply_text": f"抱歉，暂不支持处理{name}消息，请用文字描述您的需求。",
+                      "need_api_call": False,
+                      "api_url": "",
+                      "api_body": "",
+                  }
+              return {
+                  "reply_text": "抱歉，我没理解您的意思，请换个方式描述一下？",
+                  "need_api_call": False,
+                  "api_url": "",
+                  "api_body": "",
+              }
+        code_language: python3
+        outputs:
+          api_body:
+            children: null
+            type: string
+          api_url:
+            children: null
+            type: string
+          need_api_call:
+            children: null
+            type: boolean
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 兜底回复
+        type: code
+        variables:
+        - value_selector:
+          - code_validate
+          - scene
+          variable: scene
+        - value_selector:
+          - code_validate
+          - text_type
+          variable: text_type
+      height: 52
+      id: code_fallback
+      position:
+        x: 4140
+        y: 560
+      positionAbsolute:
+        x: 4140
+        y: 560
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is not empty
+            variable_selector:
+            - code_parse_company
+            - action
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 公司查询是否交给应用层执行？
+        type: if-else
+      height: 148
+      id: if_company_action
+      position:
+        x: 4780
+        y: 400
+      positionAbsolute:
+        x: 4780
+        y: 400
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          def main(reply_qa: str, reply_worktool: str, reply_company: str, reply_fallback: str):
+              """从各子工作流的回复中取第一个非空文本作为最终回复。"""
+              for r in (reply_qa, reply_worktool, reply_company, reply_fallback):
+                  if r:
+                      return {"final_text": r}
+              return {"final_text": ""}
+        code_language: python3
+        outputs:
+          final_text:
+            children: null
+            type: string
+        selected: false
+        title: 汇总最终回复
+        type: code
+        variables:
+        - value_selector:
+          - code_parse_qa
+          - answer
+          value_type: string
+          variable: reply_qa
+        - value_selector:
+          - code_parse_worktool
+          - reply_text
+          value_type: string
+          variable: reply_worktool
+        - value_selector:
+          - code_parse_company
+          - reply_text
+          value_type: string
+          variable: reply_company
+        - value_selector:
+          - code_fallback
+          - reply_text
+          value_type: string
+          variable: reply_fallback
+      height: 52
+      id: code_final_text
+      position:
+        x: 5100
+        y: 400
+      positionAbsolute:
+        x: 5100
+        y: 400
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |
+          import json
+
+          def main(
+              reply_text: str,
+              chat_id: str,
+              robotId: str,
+              apiBaseUrl: str,
+          ):
+              """
+              构建发送文本消息的 API 请求（type=203）。
+              """
+              return {
+                  "api_url": f"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}",
+                  "api_body": json.dumps({
+                      "socketType": 2,
+                      "list": [
+                          {
+                              "type": 203,
+                              "titleList": [chat_id],
+                              "receivedContent": reply_text,
+                          }
+                      ],
+                  }, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          api_body:
+            children: null
+            type: string
+          api_url:
+            children: null
+            type: string
+        selected: false
+        title: 构建文本回复
+        type: code
+        variables:
+        - value_selector:
+          - code_final_text
+          - final_text
+          variable: reply_text
+        - value_selector:
+          - code_validate
+          - chat_id
+          variable: chat_id
+        - value_selector:
+          - env
+          - WT_ROBOT_ID
+          variable: robotId
+        - value_selector:
+          - env
+          - WT_API_BASE_URL
+          variable: apiBaseUrl
+      height: 52
+      id: code_send_text
+      position:
+        x: 5420
+        y: 400
+      positionAbsolute:
+        x: 5420
+        y: 400
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{{#code_send_text.api_body#}}'
+          type: json
+        headers: 'Content-Type: application/json'
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 发送文本回复
+        type: http-request
+        url: '{{#code_send_text.api_url#}}'
+      height: 125
+      id: http_send_text
+      position:
+        x: 5740
+        y: 400
+      positionAbsolute:
+        x: 5740
+        y: 400
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - type: string
+          value_selector:
+          - code_final_text
+          - final_text
+          variable: result2
+        - type: string
+          value_selector:
+          - code_final_text
+          - final_text
+          variable: final_text
+        - type: string
+          value_selector:
+          - code_parse_qa
+          - qa_conversation_id
+          variable: qaConversationId
+        selected: false
+        title: 结束
+        type: end
+      height: 88
+      id: end
+      position:
+        x: 6060
+        y: 400
+      positionAbsolute:
+        x: 6060
+        y: 400
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - type: string
+          value_selector:
+          - code_parse_company
+          - action
+          variable: action
+        - type: string
+          value_selector:
+          - code_parse_company
+          - query_type
+          variable: query_type
+        - type: string
+          value_selector:
+          - code_parse_company
+          - keyword
+          variable: keyword
+        - type: string
+          value_selector:
+          - code_parse_company
+          - period
+          variable: period
+        - type: string
+          value_selector:
+          - code_parse_company
+          - params
+          variable: params
+        selected: false
+        title: 结束（公司信息查询 → 应用层执行）
+        type: end
+      height: 88
+      id: end_company_action
+      position:
+        x: 5100
+        y: 640
+      positionAbsolute:
+        x: 5100
+        y: 640
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - type: string
+          value_selector:
+          - code_validate
+          - scene
+          variable: result_
+        selected: false
+        title: 跳过（门控拒绝）
+        type: end
+      height: 88
+      id: end_gate_skip
+      position:
+        x: 1900
+        y: 480
+      positionAbsolute:
+        x: 1900
+        y: 480
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    viewport:
+      x: -600
+      y: 0
+      zoom: 0.7
+  rag_pipeline_variables: []

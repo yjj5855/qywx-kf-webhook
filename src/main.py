@@ -11,14 +11,16 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
-from client import get_client
-from config import settings
-from handler import get_handler
-from models import CallbackRequest, CallbackResponse
+from src.api_bindings import router as bindings_router
+from src.api_memory import router as memory_router
+from src.client import get_client
+from src.config import settings
+from src.handler import get_handler
+from src.models import CallbackRequest, CallbackResponse
 
 # ---- 日志配置 ----
 
-LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR = Path(__file__).resolve().parent.parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
 _log_handler = RotatingFileHandler(
@@ -55,16 +57,21 @@ _MAX_SEEN_IDS = 2000
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期管理"""
-    yield
-    from client import client as _client
+    """应用生命周期管理：启动知识库增量导出定时任务，退出时清理"""
+    from src.client import client as _client
+    from src.exporter import kb_export_loop
 
+    export_task = asyncio.create_task(kb_export_loop(settings.dify_export_interval))
+    yield
+    export_task.cancel()
     if _client:
         await _client.close()
 
 
 app = FastAPI(title="WorkTool Callback Service", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(Path(__file__).resolve().parent / "static")), name="static")
+app.include_router(bindings_router, prefix="/api")
+app.include_router(memory_router, prefix="/api")
 
 
 async def _process_message(req: CallbackRequest, robot_id: str) -> None:

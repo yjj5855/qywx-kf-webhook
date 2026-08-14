@@ -5,7 +5,7 @@ import logging
 
 from openai import AsyncOpenAI
 
-from intent.types import IntentType, INTENT_META
+from src.intent.types import IntentType, INTENT_META
 
 logger = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ import logging
 import re
 from abc import ABC, abstractmethod
 
-from intent.types import IntentResult, IntentType
-from models import CallbackRequest
+from src.intent.types import IntentResult, IntentType
+from src.models import CallbackRequest
 
 logger = logging.getLogger(__name__)
 
