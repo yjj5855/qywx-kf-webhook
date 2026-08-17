@@ -30,3 +30,10 @@
 
 ### 知识库初始化
 - 调整 新建知识库 permission 从 only_me 改为 all_team_members，团队所有成员可见
+
+### 文档
+- 新增 README.md，涵盖启动方式、配置项、API 接口与运维脚本说明
+
+### 版本控制
+- 调整 .gitignore 忽略 .DS_Store，并例外跟踪 data/app-prod.db
+- 新增 data/app-prod.db 生产群绑定数据库纳入版本控制
