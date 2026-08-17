@@ -23,6 +23,7 @@ class WorkToolClient:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
                 timeout=httpx.Timeout(30.0),
+                trust_env=False,  # 忽略环境代理，直连内部服务
             )
         return self._client
 

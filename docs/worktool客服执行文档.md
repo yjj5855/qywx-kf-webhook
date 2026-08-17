@@ -325,7 +325,7 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 | §8 应用层职责 | `handler.py` / `dify_client.py`（workflows/run）/ `company.py`（公司接口） |
 | §9 接口清单 | `main.py`（/callback、/health）、`api_bindings.py`、`api_memory.py` |
 | §10 知识库导出 | `kb.py`（create_by_text）+ `exporter.py`（定时增量导出）+ `memory.py`（since_id） |
-| §11 配置项 | `config.py`（`WT_*` 前缀）+ `.env` |
+| §11 配置项 | `config.py`（`WT_*` 前缀）+ `.env.dev` / `.env.prod`（由 `APP_ENV` 选择） |
 | 记忆 | `memory.py`（chat_memory）、`session_store.py`（qaConversationId） |
 | 群绑定 | `binding.py`（group_bindings，含 kb_last_export_id 导出游标） |
 

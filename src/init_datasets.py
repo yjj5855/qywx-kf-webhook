@@ -35,13 +35,13 @@ async def create_dataset(base_url: str, api_key: str, name: str, timeout: float 
     payload = {
         "name": name,
         "indexing_technique": settings.dify_dataset_indexing,  # economy 或 high_quality（需 Embedding 模型）
-        "permission": "only_me",
+        "permission": "all_team_members",
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
         resp = await client.post(url, json=payload, headers=headers)
         resp.raise_for_status()
         return resp.json()

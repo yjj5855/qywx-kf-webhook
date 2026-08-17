@@ -35,7 +35,7 @@ def fetch_all_datasets(base_url: str, api_key: str, page_size: int = 100) -> dic
     headers = {"Authorization": f"Bearer {api_key}"}
     while True:
         url = f"{base_url.rstrip('/')}/v1/datasets?page={page}&limit={page_size}"
-        resp = httpx.get(url, headers=headers, timeout=15.0)
+        resp = httpx.get(url, headers=headers, timeout=15.0, trust_env=False)
         resp.raise_for_status()
         data = resp.json()
         for d in data.get("data", []) or []:

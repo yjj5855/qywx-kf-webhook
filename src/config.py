@@ -1,12 +1,22 @@
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 运行环境通过 APP_ENV 指定（默认 dev），加载对应的 .env.{APP_ENV} 文件；
+# 指定文件不存在时回退到 .env。
+APP_ENV = os.getenv("APP_ENV", "dev").strip().lower() or "dev"
+_ENV_FILE = _BASE_DIR / f".env.{APP_ENV}"
+if not _ENV_FILE.exists():
+    _ENV_FILE = _BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
     model_config = {
         "env_prefix": "WT_",
-        "env_file": str(Path(__file__).resolve().parent.parent / ".env"),
+        "env_file": str(_ENV_FILE),
         "extra": "ignore",
     }
 
@@ -19,7 +29,7 @@ class Settings(BaseSettings):
 
     # ---- Dify 主工作流（回调 → 整理参数 → /v1/workflows/run）----
     dify_base_url: str = "http://192.168.31.204"        # Dify 服务地址，如 http://192.168.31.204
-    # 主工作流「WorkTool 回调消息处理」的 API Key（敏感，配置在 .env: WT_DIFY_WORKFLOW_KEY）
+    # 主工作流「WorkTool 回调消息处理」的 API Key（敏感，配置在 .env 文件: WT_DIFY_WORKFLOW_KEY）
     dify_workflow_key: str = ""
     dify_timeout: float = 30.0     # 工作流调用超时（秒）
     # 会话会话ID/群绑定 的本地 SQLite 存储路径
@@ -30,7 +40,7 @@ class Settings(BaseSettings):
     company_api_key: str = ""       # 公司数据网关密钥（可选）
 
     # ---- 知识库（群聊天记录 → Dify 数据集）----
-    # Dify「API 访问」页创建的"数据集"权限类型 API Key（敏感，配置在 .env: WT_DIFY_DATASET_KEY）
+    # Dify「API 访问」页创建的"数据集"权限类型 API Key（敏感，配置在 .env 文件: WT_DIFY_DATASET_KEY）
     dify_dataset_key: str = ""
     # 知识库增量导出定时任务间隔（秒），0=关闭定时导出（可手动调 /api/messages/export）
     dify_export_interval: float = 300.0

@@ -63,7 +63,7 @@ class HttpCompanyInfoProvider(CompanyInfoProvider):
         }
         headers = {"Authorization": f"Bearer {self._api_key}"} if self._api_key else {}
 
-        async with httpx.AsyncClient(timeout=self._timeout) as client:
+        async with httpx.AsyncClient(timeout=self._timeout, trust_env=False) as client:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()

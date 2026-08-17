@@ -18,3 +18,15 @@
 - 新增 init_kb_bindings 脚本，从客户群 CSV 回填群专属知识库 dataset id 与公司 ID
 - 新增 sync_kb_ids_to_csv 脚本，把数据库 memory_dataset_id 与工作流 AppID 回填到 CSV
 - 更新 客户群列表 CSV 新增知识库ID 与 工作流AppID 列
+
+### 配置管理
+- 新增 APP_ENV 环境变量按需加载 .env.dev / .env.prod，默认 dev，指定文件不存在时回退 .env
+- 新增 .gitignore 忽略 .env.*，避免环境密钥被提交
+- 更新 客服执行文档 §11 配置项说明
+
+### HTTP 客户端
+- 修复 本机 socks 代理导致 httpx 缺 socksio 报错，所有客户端加 trust_env=False 直连内部服务
+- 涉及 client.py / company.py / dify_client.py / kb.py / init_datasets.py / init_kb_bindings.py
+
+### 知识库初始化
+- 调整 新建知识库 permission 从 only_me 改为 all_team_members，团队所有成员可见
