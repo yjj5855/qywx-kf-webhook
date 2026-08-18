@@ -42,8 +42,9 @@ class Settings(BaseSettings):
     # ---- 知识库（群聊天记录 → Dify 数据集）----
     # Dify「API 访问」页创建的"数据集"权限类型 API Key（敏感，配置在 .env 文件: WT_DIFY_DATASET_KEY）
     dify_dataset_key: str = ""
-    # 知识库每日同步时间（北京时间 HH:MM，如 01:00），空串=关闭定时同步（仅手动调 /api/messages/sync）
-    dify_export_time: str = "01:00"
+    # 知识库每日同步时间（北京时间 HH:MM，如 23:30），空串=关闭定时同步（仅手动调 /api/messages/sync）
+    # 建议放在当天结束前（如 23:30），使文档名日期与当天聊天日期一致
+    dify_export_time: str = "23:30"
     # 知识库索引方式：economy=关键词索引（免向量模型，默认）/ high_quality=语义索引（需 Dify 配置 Embedding 模型）
     dify_dataset_indexing: str = "economy"
 

@@ -4,7 +4,7 @@
 chat_memory 中的真实对话写入群专属 Dify 知识库。
 
 同步策略（不再轮询）：
-- 每日北京时间 settings.dify_export_time（默认 01:00）自动同步一次；
+- 每日北京时间 settings.dify_export_time（默认 23:30）自动同步一次；
 - 手动同步：POST /api/messages/sync 调 export_once 立即全量同步；
 - 同一逻辑（export_once）两条入口共用。
 
@@ -70,11 +70,13 @@ async def export_once() -> dict:
                 results[group_id] = 0
                 continue
 
+            # 文档名带北京时间日期，避免同名文档无限堆积混淆（如 群对话_测试二群_20260818）
+            date_suffix = (datetime.now(timezone.utc) + timedelta(hours=8)).strftime("%Y%m%d")
             await export_turns(
                 base_url=settings.dify_base_url,
                 api_key=settings.dify_dataset_key,
                 dataset_id=dataset_id,
-                name_prefix=f"群对话_{group_name}",
+                name_prefix=f"群对话_{group_name}_{date_suffix}",
                 turns=turns,
             )
             last_id = turns[-1]["id"]
@@ -97,7 +99,7 @@ async def export_once() -> dict:
 
 
 async def kb_sync_loop() -> None:
-    """每日定点同步循环：北京时间 settings.dify_export_time（默认 01:00）执行一次全量增量导出。
+    """每日定点同步循环：北京时间 settings.dify_export_time（默认 23:30）执行一次全量增量导出。
 
     空串表示关闭定时同步（仅手动调 POST /api/messages/sync）。
     """

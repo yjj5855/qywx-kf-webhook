@@ -287,7 +287,7 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 | DIFY_COMPANY_APP_KEY | 公司信息查询工作流 API Key |
 | DIFY_DATASET_KEY | **数据集权限** Key（导出知识库用，应用 Key 无此权限） |
 | DEBOUNCE_SECONDS | 回调防抖窗口（秒）：同一会话窗口内多条消息合并为一次工作流调用，默认 1.0，0=关闭（仍串行） |
-| DIFY_EXPORT_TIME | 知识库每日同步时间（北京时间 HH:MM），空串=关闭定时同步（仅手动）；默认 01:00 |
+| DIFY_EXPORT_TIME | 知识库每日同步时间（北京时间 HH:MM，建议 23:30 使文档名日期=当天聊天日期），空串=关闭定时同步（仅手动）；默认 23:30 |
 | COMPANY_API_BASE_URL / COMPANY_API_KEY | 公司数据网关 |
 | DB_URL / DB_USER / DB_PASSWORD | MySQL 连接 |
 
@@ -299,7 +299,7 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 4. **实现应用层**：按第 8 节职责实现回调、Dify 客户端、记忆、公司查询、知识库导出。
 5. **绑定群**：用 `docs/客户群列表_去重.csv` 初始化群绑定（群ID=G编码、群名、公司ID、状态），或用 `POST /api/bindings` 单条维护；再为群配置 memory_dataset_id（知识库）。
 6. **联调**：回调 → 主工作流 → 各子应用 → 回复；重点验证多轮补参数、公司查询、知识库导出三条链路。
-7. **上线**：服务启动后内置定时任务在每日北京时间 `DIFY_EXPORT_TIME`（默认 01:00）自动全量增量同步知识库（也可随时手动调 `POST /api/messages/sync` 全量同步，或 `POST /api/messages/export` 单群导出）；监控 Dify 调用失败率。
+7. **上线**：服务启动后内置定时任务在每日北京时间 `DIFY_EXPORT_TIME`（默认 23:30，文档名日期与当天聊天一致）自动全量增量同步知识库（也可随时手动调 `POST /api/messages/sync` 全量同步，或 `POST /api/messages/export` 单群导出）；监控 Dify 调用失败率。
 
 ## 13. 注意事项
 

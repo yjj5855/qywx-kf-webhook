@@ -114,7 +114,7 @@ curl http://localhost:8000/health
 | `WT_COMPANY_API_BASE_URL` | 公司数据网关地址 | — |
 | `WT_COMPANY_API_KEY` | 公司数据网关密钥 | — |
 | `WT_DIFY_DATASET_KEY` | 知识库（数据集）权限 Key | — |
-| `WT_DIFY_EXPORT_TIME` | 知识库每日同步时间（北京时间 HH:MM），空串=关闭定时同步（仅手动） | `01:00` |
+| `WT_DIFY_EXPORT_TIME` | 知识库每日同步时间（北京时间 HH:MM，如 23:30 使文档名日期=当天聊天日期），空串=关闭定时同步（仅手动） | `23:30` |
 | `WT_DIFY_DATASET_INDEXING` | 知识库索引方式：`economy`（关键词）/ `high_quality`（向量，需 Embedding 模型） | `economy` |
 
 > 环境选择变量 `APP_ENV` 不带 `WT_` 前缀，只用于决定加载哪个 `.env` 文件，不是业务配置项。

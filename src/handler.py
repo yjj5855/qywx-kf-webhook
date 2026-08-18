@@ -102,10 +102,25 @@ class DifyWorkflowHandler(MessageHandler):
             return ""
         return binding.get("company_ids") or ""
 
+    def _resolve_dataset_id(self, req: CallbackRequest) -> str:
+        """按群名反查绑定，取该群的群记忆知识库 ID（memory_dataset_id）。
+
+        供 QA 子工作流做动态群聊检索；非群聊/未绑定返回空串，工作流侧跳过检索。
+        """
+        if not req.is_group:
+            return ""
+        binding = self._bindings.get_by_group_name(self.PLATFORM, req.chat_id)
+        if binding is None:
+            return ""
+        return binding.get("memory_dataset_id") or ""
+
     def _build_inputs(self, req: CallbackRequest) -> dict:
+        # 图片等消息 spoken 可能为空，而主工作流 start.spoken 为必填：
+        # 传 "[图片]" 占位避免 Dify start 校验失败（工作流内部 gate_msg 也按此约定处理）
+        spoken = req.spoken or ("[图片]" if req.text_type == 2 else "")
         return {
-            "spoken": req.spoken,
-            "rawSpoken": req.raw_spoken,
+            "spoken": spoken,
+            "rawSpoken": req.raw_spoken or spoken,
             "receivedName": req.received_name,
             "groupName": req.group_name,
             "groupRemark": req.group_remark,
@@ -119,6 +134,8 @@ class DifyWorkflowHandler(MessageHandler):
             "recentContext": self._memory.to_context(req.session_id),
             # 群绑定的公司 ID（顿号分隔），供主工作流内部路由/公司查询使用
             "companyIds": self._resolve_company_ids(req),
+            # 群记忆知识库 ID，供 QA 子工作流动态检索群聊历史（未绑定为空）
+            "datasetId": self._resolve_dataset_id(req),
         }
 
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> HandleResult:
