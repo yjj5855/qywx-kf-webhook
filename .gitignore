@@ -9,4 +9,3 @@ dist/
 .DS_Store
 logs/
 data/*
-!data/app-prod.db

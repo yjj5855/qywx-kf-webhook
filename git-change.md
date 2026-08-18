@@ -22,3 +22,6 @@
 - recentContext 改为最近 12 条消息（≈6 轮）的多人群聊转写；MAX_TURNS 调整为 40 条（≈20 轮）
 - 知识库文档导出格式同步改为时间顺序群聊转写（角色标注），不再伪造一问一答
 - /api/messages/record 支持单条消息写入（content+role），兼容旧问答对写法（拆两条写入）
+
+### 版本控制
+- 停止跟踪 data/app-prod.db（生产数据库不再入库，.gitignore 忽略 data/*，本地文件保留）
