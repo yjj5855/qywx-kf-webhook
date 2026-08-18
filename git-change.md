@@ -8,6 +8,7 @@
 - 兼容新版 Dify 响应结构，结束节点输出在 data.outputs 而非顶层 result
 - 重构 消息处理返回 HandleResult，区分 webhook 回复、工作流内部已发送、不回复三种情况
 - 新增 _extract_reply_text 解包工作流返回的 JSON 字符串回复
+- 调整 主工作流调用失败时不再给客户发送"服务暂时不可用"兜底文案，只记日志（避免与超时后迟到的真实回复重复）
 - 优化 项目日志模块名补充 src. 前缀，确保以 python -m src.main 运行时 app.log 完整
 
 ### 客服工作流

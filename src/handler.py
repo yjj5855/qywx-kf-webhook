@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class HandleResult:
     """消息处理结果，供上层决定是否由 webhook 发送回复。
 
-    - reply_text 非空：需要 webhook 主动发送（工作流失败兜底 / 公司查询路径）；
+    - reply_text 非空：需要 webhook 主动发送（如公司查询路径）；
     - sent_internally=True：回复已由主工作流内部直接发到群里，webhook 不重复发送；
     - 两者皆空：本次不产生回复（如门控跳过），reason 说明原因。
     """
@@ -132,9 +132,10 @@ class DifyWorkflowHandler(MessageHandler):
             )
         except Exception as exc:
             logger.exception("调用 Dify 主工作流失败 session=%r", session_id)
+            # 失败时不回复客户：blocking 调用超时并不代表工作流未执行，
+            # 若此时再发兜底文案，可能与工作流迟到的真实回复重复；只记日志。
             return HandleResult(
-                reply_text=f"抱歉，服务暂时不可用，请稍后再试。（{type(exc).__name__}）",
-                reason=f"Dify 主工作流调用失败（{type(exc).__name__}）",
+                reason=f"Dify 主工作流调用失败（{type(exc).__name__}），不回复客户",
             )
 
         # 主工作流返回 final_text（最终发送到群里的文本）→ 写入群聊记录库，供知识库导出
