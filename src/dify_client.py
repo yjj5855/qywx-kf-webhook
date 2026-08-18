@@ -26,10 +26,7 @@ class DifyWorkflowClient:
     async def run_workflow(self, inputs: dict, user: str) -> dict:
         """调用 Dify 主工作流（blocking），返回结束节点输出字段字典。
 
-        主工作流结束节点可能输出（取决于命中哪个分支）：
-        - 常规分支: result2 / final_text / conversationId / qaConversationId
-        - 公司查询分支: action / query_type / keyword / period / params
-        - 门控跳过分支: result_
+        主工作流结束节点输出 final_text（最终发送到群里的文本）；无输出则返回空 dict。
         """
         if not self._base_url or not self._api_key:
             raise DifyError("未配置 Dify 主工作流（WT_DIFY_BASE_URL / WT_DIFY_WORKFLOW_KEY）")

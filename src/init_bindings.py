@@ -22,7 +22,6 @@ from pathlib import Path
 from src.binding import BindingStore, normalize_company_ids
 from src.config import settings
 from src.memory import ChatMemoryStore
-from src.session_store import SessionStore
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +29,8 @@ CSV_DEFAULT = Path(__file__).resolve().parent.parent / "docs" / "客户群列表
 
 
 def init_from_csv(csv_path: str | Path = CSV_DEFAULT) -> dict:
-    # 确保全部表结构存在（group_bindings / session_conversations / chat_memory）
+    # 确保全部表结构存在（group_bindings / chat_memory）
     store = BindingStore(settings.dify_db_path)
-    SessionStore(settings.dify_db_path)
     ChatMemoryStore(settings.dify_db_path)
     inserted = updated = normal = conflict = 0
     csv_names: set[str] = set()

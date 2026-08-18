@@ -35,10 +35,6 @@ class Settings(BaseSettings):
     # 会话会话ID/群绑定 的本地 SQLite 存储路径
     dify_db_path: str = str(Path(__file__).resolve().parent.parent / "data" / "app.db")
 
-    # ---- 公司信息查询（应用层执行：用群绑定 company_ids 调公司接口）----
-    company_api_base_url: str = ""  # 公司数据网关地址，如 https://company-gateway.example.com
-    company_api_key: str = ""       # 公司数据网关密钥（可选）
-
     # ---- 知识库（群聊天记录 → Dify 数据集）----
     # Dify「API 访问」页创建的"数据集"权限类型 API Key（敏感，配置在 .env 文件: WT_DIFY_DATASET_KEY）
     dify_dataset_key: str = ""

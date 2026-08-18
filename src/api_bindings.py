@@ -1,7 +1,7 @@
 """群绑定管理接口：维护 群 ↔ 公司(company_ids) 绑定关系。
 
-公司信息查询（action=company_info_query）依赖这里查到的 company_ids 去调公司接口。
-平台目前固定为 wecom（企业微信 WorkTool）。
+company_ids 由 webhook 侧解析后作为 companyIds 传入主工作流，
+供工作流内部路由/公司查询使用。平台目前固定为 wecom（企业微信 WorkTool）。
 """
 from __future__ import annotations
 

@@ -38,10 +38,10 @@ _log_handler.setFormatter(
 _project_loggers = (
     "__main__",
     "main", "handler", "client", "dify_client", "exporter", "kb",
-    "binding", "session_store", "memory", "company", "api_bindings", "api_memory",
+    "binding", "memory", "api_bindings", "api_memory",
     "src.main", "src.handler", "src.client", "src.dify_client",
-    "src.exporter", "src.kb", "src.binding", "src.session_store",
-    "src.memory", "src.company", "src.api_bindings", "src.api_memory",
+    "src.exporter", "src.kb", "src.binding", "src.memory",
+    "src.api_bindings", "src.api_memory",
 )
 for _name in _project_loggers:
     _pkg = logging.getLogger(_name)

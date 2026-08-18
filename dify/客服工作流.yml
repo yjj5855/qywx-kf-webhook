@@ -561,6 +561,11 @@ workflow:
           required: false
           type: text-input
           variable: recentContext
+        - label: companyIds
+          max_length: 512
+          required: false
+          type: text-input
+          variable: companyIds
       height: 420
       id: start
       position:

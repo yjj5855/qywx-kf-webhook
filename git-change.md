@@ -37,3 +37,14 @@
 ### 版本控制
 - 调整 .gitignore 忽略 .DS_Store，并例外跟踪 data/app-prod.db
 - 新增 data/app-prod.db 生产群绑定数据库纳入版本控制
+
+### 公司信息查询
+- 删除 src/company.py 应用层公司接口调用模块
+- 删除 config.py 中 company_api_base_url / company_api_key 配置
+- 新增 handler 按群名反查绑定 company_ids，作为 companyIds 传入主工作流
+- 调整 客服工作流 start 节点新增 companyIds 输入变量
+
+### 会话管理
+- 删除 src/session_store.py 会话 ID 存储模块
+- 调整 handler 不再持久化 qaConversationId，会话由工作流侧自行管理
+- 更新 main.py / init_bindings.py / api_bindings.py / dify_client.py 移除相关引用与注释
