@@ -46,7 +46,7 @@ flowchart LR
 
 ```
 群消息 → 回调服务（3 秒内 ack，异步处理）
-  → 读 MySQL：qaConversationId + 最近 6 轮对话(recentContext)
+  → 读本地库：qaConversationId + 最近 12 条消息(recentContext)
   → POST Dify 主工作流 /v1/workflows/run（blocking）
   → 主工作流：门控 LLM → 意图 LLM → 大类路由 → 调子应用 → 发回复
   → 回调服务解析输出：公司查询 action 由应用层执行；其余记录记忆
@@ -96,25 +96,28 @@ CREATE TABLE session_conversations (
 ) ENGINE=InnoDB COMMENT='会话ID持久化';
 ```
 
-### 4.3 对话记忆表 `chat_memory`
+### 4.3 对话记忆表 `chat_memory`（消息流水模型）
 
 ```sql
 CREATE TABLE chat_memory (
     id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     session_id   VARCHAR(255) NOT NULL COMMENT '会话标识，同 session_conversations.session_id',
-    sender_name  VARCHAR(255) NOT NULL DEFAULT '' COMMENT '说话人名称（receivedName）',
-    user_message TEXT         NOT NULL COMMENT '用户消息',
-    reply_text   TEXT         NOT NULL COMMENT '机器人最终回复',
+    role         VARCHAR(8)   NOT NULL DEFAULT 'user' COMMENT 'user=用户消息 bot=机器人回复',
+    sender_name  VARCHAR(255) NOT NULL DEFAULT '' COMMENT '说话人名称（receivedName），bot 行为"机器人"',
+    content      TEXT         NOT NULL COMMENT '消息内容',
     created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录时间（UTC，展示时转北京时间）',
+    group_name   VARCHAR(255) NOT NULL DEFAULT '' COMMENT '真实群名（群聊导出按群匹配用，兼容群备注不一致）',
     KEY idx_session (session_id, id)
-) ENGINE=InnoDB COMMENT='对话记忆（真实对话，知识库导出数据源）';
+) ENGINE=InnoDB COMMENT='对话记忆（消息流水：一行一条消息，知识库导出数据源）';
 ```
 
 设计要点：
 
 - 时间统一存 **UTC**（`CURRENT_TIMESTAMP`），展示/导出时转北京时间（UTC+8）。
+- **消息流水模型**：一行一条消息，每条群消息都记录（含未@闲聊），机器人回复单独记一条 `bot` 行；多人穿插说话时按 `id` 时间顺序完整保留，不再强制"一问一答"问答对。
 - `chat_memory` 的 `id` 递增，知识库导出用 `id > since_id` 增量读取。
-- 记忆裁剪：单会话最多保留最近 20 轮（超出删最旧），注入意图识别时取最近 6 轮。
+- 记忆裁剪：只在知识库导出成功、推进游标后，删除该群"已导出且超出最近 40 条消息（≈20 轮）"的旧行（未导出的行永不删除，保证知识库不丢记录）；注入意图识别时取最近 12 条消息（≈6 轮）。
+- 旧"问答对"结构（`user_message`/`reply_text`）启动时自动迁移：每行拆成 `user` + `bot` 两条消息，保持先问后答顺序；迁移后 `id` 会重新分配，若 `kb_last_export_id` 指向旧 id 需置 0 重导（当前各群游标均为 0，无影响）。
 
 ## 5. 回调 → 主工作流参数契约
 
@@ -145,7 +148,7 @@ POST /callback?robotId={robotId}
 | fileBase64 | fileBase64 | 截断 256 字符（当前链路不消费图片内容） |
 | messageId | messageId | 去重用 |
 | 会话表读出 | qaConversationId | 客服问答会话ID，首次为空 |
-| chat_memory 最近 6 轮 | recentContext | 格式：`【历史对话】\n用户: …\n机器人: …`，上限 1500 字符 |
+| chat_memory 最近 12 条消息 | recentContext | 格式：`【历史对话】\n说话人: 内容\n…\n机器人: 内容`（多人消息原序），上限 1500 字符 |
 
 ### 5.3 主工作流输出（结束节点）
 
@@ -240,9 +243,10 @@ public interface CompanyInfoProvider {
 | /api/bindings/query?platform=&group_id= | GET | 查询单条绑定 |
 | /api/bindings | POST | 创建/更新绑定 `{platform, group_id, group_name, company_ids, memory_dataset_id}` |
 | /api/bindings | DELETE | 删除绑定（软删 status=0） |
-| /api/messages/record | POST | 记录一轮对话 `{session_id, sender_name, user_message, reply_text}` |
+| /api/messages/record | POST | 记录消息：单条 `{session_id, sender_name, content, role, group_name}`；兼容旧问答对 `{user_message, reply_text}`（拆两条写入） |
 | /api/messages/history?session_id=&limit= | GET | 对话历史（含北京时间 `time`） |
 | /api/messages/export | POST | 增量导出知识库 `{session_id, since_id, limit}` → 返回 `last_id` |
+| /api/messages/sync | POST | 手动全量同步所有绑定知识库的群（与每日定时同步同逻辑）→ `{group_id: 导出条数}` |
 
 ## 10. 知识库记忆（导出与检索）
 
@@ -280,7 +284,7 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 | DIFY_WORKTOOL_APP_KEY | 客服操作工作流 API Key |
 | DIFY_COMPANY_APP_KEY | 公司信息查询工作流 API Key |
 | DIFY_DATASET_KEY | **数据集权限** Key（导出知识库用，应用 Key 无此权限） |
-| DIFY_EXPORT_INTERVAL | 知识库增量导出定时任务间隔（秒），0=关闭；默认 300 |
+| DIFY_EXPORT_TIME | 知识库每日同步时间（北京时间 HH:MM），空串=关闭定时同步（仅手动）；默认 01:00 |
 | COMPANY_API_BASE_URL / COMPANY_API_KEY | 公司数据网关 |
 | DB_URL / DB_USER / DB_PASSWORD | MySQL 连接 |
 
@@ -292,7 +296,7 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 4. **实现应用层**：按第 8 节职责实现回调、Dify 客户端、记忆、公司查询、知识库导出。
 5. **绑定群**：用 `docs/客户群列表_去重.csv` 初始化群绑定（群ID=G编码、群名、公司ID、状态），或用 `POST /api/bindings` 单条维护；再为群配置 memory_dataset_id（知识库）。
 6. **联调**：回调 → 主工作流 → 各子应用 → 回复；重点验证多轮补参数、公司查询、知识库导出三条链路。
-7. **上线**：设置 `DIFY_EXPORT_INTERVAL` 后服务内置定时任务自动增量导出知识库（也可手动调 `POST /api/messages/export`）；监控 Dify 调用失败率。
+7. **上线**：服务启动后内置定时任务在每日北京时间 `DIFY_EXPORT_TIME`（默认 01:00）自动全量增量同步知识库（也可随时手动调 `POST /api/messages/sync` 全量同步，或 `POST /api/messages/export` 单群导出）；监控 Dify 调用失败率。
 
 ## 13. 注意事项
 
@@ -308,8 +312,10 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 ## 14. 已知限制与后续优化
 
 - 图片消息暂不做视觉识别（意图链路以 "[图片]" 占位）。
-- 知识库当前导原文，后续可加 LLM 总结后再入库（更精炼、去噪）。
-- 会话记忆裁剪固定 20 轮，后续可按执行情况接入"轮换归档"策略（接近上限先总结入知识库再清记忆）。
+- 知识库当前导原文（消息流水转写），后续可加 LLM 总结后再入库（更精炼、去噪）。
+- 会话记忆全量记录（含未@闲聊）：知识库完整但体量更大，未@闲聊也会进入意图上下文，可按需调 CTX_TURNS 条数。
+- 会话记忆只在导出成功后裁剪"已导出且超出 40 条消息（≈20 轮）"的旧行，未导出行不删（知识库零丢失）；导出长期失败时本地表会增长，可在 exporter 加每群保留行数兜底。
+- 历史遗留的"按群备注写入且未带 group_name"旧行无法按群匹配导出，新写入行均带真实群名，不受影响。
 - 知识库检索注入（§10.2）为下一阶段：QA 前调 `retrieve` 检索群知识库，命中片段并入 recentContext。
 
 ## 附录 A：本项目参考实现（Python 版）
@@ -329,4 +335,4 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 | 记忆 | `memory.py`（chat_memory）、`session_store.py`（qaConversationId） |
 | 群绑定 | `binding.py`（group_bindings，含 kb_last_export_id 导出游标） |
 
-对应关系：**MySQL → SQLite**（`data/app.db`，表结构一一对应）、**Spring Boot → FastAPI**、**Mapper/JPA → sqlite3**。定时任务用内置 asyncio 循环（`exporter.kb_export_loop`）实现，对应 Java 侧的 `@Scheduled`。
+对应关系：**MySQL → SQLite**（`data/app.db`，表结构一一对应）、**Spring Boot → FastAPI**、**Mapper/JPA → sqlite3**。定时任务用内置 asyncio 循环（`exporter.kb_sync_loop`，每日定点北京时间触发）实现，对应 Java 侧的 `@Scheduled`。

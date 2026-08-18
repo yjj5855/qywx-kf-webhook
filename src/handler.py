@@ -124,6 +124,16 @@ class DifyWorkflowHandler(MessageHandler):
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> HandleResult:
         session_id = req.session_id
         user_msg = req.spoken or ("[图片]" if req.text_type == 2 else "")
+        group_name = req.group_name
+
+        # 全量消息流水：先记录用户消息（含未@闲聊、门控跳过的消息；机器人回复另行记 bot 行）
+        if user_msg:
+            self._memory.append(
+                session_id, user_msg,
+                sender_name=req.received_name,
+                role="user",
+                group_name=group_name,
+            )
 
         try:
             outputs = await self._dify.run_workflow(
@@ -138,10 +148,15 @@ class DifyWorkflowHandler(MessageHandler):
                 reason=f"Dify 主工作流调用失败（{type(exc).__name__}），不回复客户",
             )
 
-        # 主工作流返回 final_text（最终发送到群里的文本）→ 写入群聊记录库，供知识库导出
+        # 主工作流返回 final_text（最终发送到群里的文本）→ 记录为 bot 消息，供知识库导出
         final_text = _extract_reply_text(outputs.get("final_text") or "")
         if final_text:
-            self._memory.append(session_id, user_msg, final_text, req.received_name)
+            self._memory.append(
+                session_id, final_text,
+                sender_name="机器人",
+                role="bot",
+                group_name=group_name,
+            )
         logger.info("Dify 工作流已处理 session=%r outputs=%s", session_id, outputs)
         if final_text:
             return HandleResult(

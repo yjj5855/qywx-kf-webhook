@@ -5,49 +5,19 @@
 ## [开发中]
 
 ### 回调服务
-- 兼容新版 Dify 响应结构，结束节点输出在 data.outputs 而非顶层 result
-- 重构 消息处理返回 HandleResult，区分 webhook 回复、工作流内部已发送、不回复三种情况
-- 新增 _extract_reply_text 解包工作流返回的 JSON 字符串回复
 - 调整 主工作流调用失败时不再给客户发送"服务暂时不可用"兜底文案，只记日志（避免与超时后迟到的真实回复重复）
-- 优化 项目日志模块名补充 src. 前缀，确保以 python -m src.main 运行时 app.log 完整
+- 重构 消息处理返回 HandleResult，区分 webhook 回复、工作流内部已发送、不回复三种情况（上版本已入，保留记录）
 
-### 客服工作流
-- 调整 key-value 节点类型 raw-text 改为 text
-- 兼容新版 Dify 输出字段解析（优先 data.outputs，回退顶层 result）
-
-### 知识库绑定
+### 知识库导出
 - 修复 create_by_text 在新版 Dify 返回 400 invalid_param：payload 补充 indexing_technique（与数据集索引方式一致）
 - 改进 kb.py / init_datasets.py 的 HTTP 报错携带 Dify 响应体（code/message），便于定位 4xx/5xx 根因
-- 新增 init_kb_bindings 脚本，从客户群 CSV 回填群专属知识库 dataset id 与公司 ID
-- 新增 sync_kb_ids_to_csv 脚本，把数据库 memory_dataset_id 与工作流 AppID 回填到 CSV
-- 更新 客户群列表 CSV 新增知识库ID 与 工作流AppID 列
+- 修复 导出周期内超 20 轮对话导致知识库丢记录：append 不再裁剪，改为导出成功推进游标后只删"已导出且超出保留上限"的旧行（memory.trim_exported），未导出轮次永不删除
+- 修复 群备注与群名不一致导致导不出：chat_memory 新增 group_name 列，handler 写入真实群名，exporter 按群匹配（group_name 列 + session_id 前缀双通道兼容旧行）
+- 调整 知识库同步由 300s 轮询改为每日定点同步（北京时间 WT_DIFY_EXPORT_TIME 默认 01:00，空串=关闭），新增手动全量同步接口 POST /api/messages/sync
 
-### 配置管理
-- 新增 APP_ENV 环境变量按需加载 .env.dev / .env.prod，默认 dev，指定文件不存在时回退 .env
-- 新增 .gitignore 忽略 .env.*，避免环境密钥被提交
-- 更新 客服执行文档 §11 配置项说明
-
-### HTTP 客户端
-- 修复 本机 socks 代理导致 httpx 缺 socksio 报错，所有客户端加 trust_env=False 直连内部服务
-- 涉及 client.py / company.py / dify_client.py / kb.py / init_datasets.py / init_kb_bindings.py
-
-### 知识库初始化
-- 调整 新建知识库 permission 从 only_me 改为 all_team_members，团队所有成员可见
-
-### 文档
-- 新增 README.md，涵盖启动方式、配置项、API 接口与运维脚本说明
-
-### 版本控制
-- 调整 .gitignore 忽略 .DS_Store，并例外跟踪 data/app-prod.db
-- 新增 data/app-prod.db 生产群绑定数据库纳入版本控制
-
-### 公司信息查询
-- 删除 src/company.py 应用层公司接口调用模块
-- 删除 config.py 中 company_api_base_url / company_api_key 配置
-- 新增 handler 按群名反查绑定 company_ids，作为 companyIds 传入主工作流
-- 调整 客服工作流 start 节点新增 companyIds 输入变量
-
-### 会话管理
-- 删除 src/session_store.py 会话 ID 存储模块
-- 调整 handler 不再持久化 qaConversationId，会话由工作流侧自行管理
-- 更新 main.py / init_bindings.py / api_bindings.py / dify_client.py 移除相关引用与注释
+### 对话记忆（消息流水模型）
+- chat_memory 由"问答对"结构改为"消息流水"：一行一条消息（role=user/bot + sender_name + content），每条群消息全量记录（含未@闲聊），机器人回复单独记 bot 行，多人穿插按时间顺序完整保留，不再强制一问一答
+- 旧库启动时自动迁移：问答对逐行拆分为 user+bot 两条消息，保持先问后答顺序
+- recentContext 改为最近 12 条消息（≈6 轮）的多人群聊转写；MAX_TURNS 调整为 40 条（≈20 轮）
+- 知识库文档导出格式同步改为时间顺序群聊转写（角色标注），不再伪造一问一答
+- /api/messages/record 支持单条消息写入（content+role），兼容旧问答对写法（拆两条写入）

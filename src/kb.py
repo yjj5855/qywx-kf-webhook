@@ -17,18 +17,25 @@ logger = logging.getLogger(__name__)
 
 
 def build_dialogue_text(turns: list[dict]) -> str:
-    """把若干轮对话格式化为知识库文档文本，每行附带北京时间（YYYY-MM-DD HH:MM）。"""
+    """把若干条消息格式化为知识库文档文本（按时间顺序的群聊转写，角色标注）。
+
+    每行格式：说话人: 内容（北京时间 YYYY-MM-DD HH:MM）。
+    bot 行标注为"机器人"，user 行标注说话人姓名；不强制一问一答，保留多人原序。
+    """
     from src.memory import format_time_cn
 
     lines = []
     for t in turns:
         ts = format_time_cn(t.get("created_at") or "")
         suffix = f"（{ts}）" if ts else ""
-        if t.get("user_message"):
+        content = t.get("content") or ""
+        if not content:
+            continue
+        if t.get("role") == "bot":
+            speaker = "机器人"
+        else:
             speaker = t.get("sender_name") or "用户"
-            lines.append(f"{speaker}: {t['user_message']}{suffix}")
-        if t.get("reply_text"):
-            lines.append(f"机器人: {t['reply_text']}{suffix}")
+        lines.append(f"{speaker}: {content}{suffix}")
     return "\n".join(lines)
 
 
@@ -82,7 +89,7 @@ async def export_turns(
 ) -> dict:
     """把若干轮对话写入知识库文档（格式化 + 建文档），返回 create_by_text 响应。
 
-    手动导出（/api/messages/export）与定时任务（exporter.kb_export_loop）共用。
+    手动导出（/api/messages/export 或 /api/messages/sync）与每日定时同步（exporter.kb_sync_loop）共用。
     """
     text = build_dialogue_text(turns)
     if not text.strip():

@@ -9,10 +9,11 @@ import logging
 
 import httpx
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from src.binding import BindingStore
 from src.config import settings
+from src.exporter import export_once
 from src.kb import export_turns
 from src.memory import ChatMemoryStore, format_time_cn
 
@@ -26,8 +27,12 @@ _store: ChatMemoryStore | None = None
 class RecordMessageRequest(BaseModel):
     session_id: str
     sender_name: str = ""      # 说话人名称（receivedName）
+    content: str = ""          # 新格式：单条消息内容（role 区分 user/bot）
+    role: str = "user"         # user / bot
+    group_name: str = ""       # 真实群名（群聊导出按群匹配用）
+    # 兼容旧格式：问答对（提供时按两条消息写入，user + bot）
     user_message: str = ""
-    reply_text: str = Field(..., description="机器人最终回复文本")
+    reply_text: str = ""
 
 
 class ExportMemoryRequest(BaseModel):
@@ -46,7 +51,16 @@ def _get_store() -> ChatMemoryStore:
 
 @router.post("/record")
 async def record_message(req: RecordMessageRequest):
-    _get_store().append(req.session_id, req.user_message, req.reply_text, req.sender_name)
+    store = _get_store()
+    if req.content:
+        # 新格式：单条消息
+        store.append(req.session_id, req.content, sender_name=req.sender_name, role=req.role, group_name=req.group_name)
+    else:
+        # 兼容旧格式：问答对拆两条消息（user + bot）
+        if req.user_message:
+            store.append(req.session_id, req.user_message, sender_name=req.sender_name, role="user", group_name=req.group_name)
+        if req.reply_text:
+            store.append(req.session_id, req.reply_text, sender_name="机器人", role="bot", group_name=req.group_name)
     return {"code": 0, "message": "ok"}
 
 
@@ -105,3 +119,19 @@ async def export_memory(req: ExportMemoryRequest):
         "message": "ok",
         "data": {"exported": len(turns), "last_id": last_id, "document": doc},
     }
+
+
+@router.post("/sync")
+async def sync_all():
+    """手动全量同步：把所有绑定知识库的群增量导出一次（与每日定时同步相同逻辑）。
+
+    返回 {group_id: 导出条数}，-1 表示该群导出失败（见日志）。
+    """
+    if not settings.dify_dataset_key:
+        return {"code": -1, "message": "未配置 WT_DIFY_DATASET_KEY（需 Dify 数据集权限 Key）"}
+    try:
+        results = await export_once()
+    except Exception:
+        logger.exception("手动知识库同步失败")
+        return {"code": -1, "message": "同步失败，详见日志"}
+    return {"code": 0, "message": "ok", "data": results}

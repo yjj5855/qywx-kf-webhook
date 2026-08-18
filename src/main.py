@@ -62,11 +62,11 @@ _MAX_SEEN_IDS = 2000
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期管理：启动知识库增量导出定时任务，退出时清理"""
+    """应用生命周期管理：启动知识库每日定点同步任务，退出时清理"""
     from src.client import client as _client
-    from src.exporter import kb_export_loop
+    from src.exporter import kb_sync_loop
 
-    export_task = asyncio.create_task(kb_export_loop(settings.dify_export_interval))
+    export_task = asyncio.create_task(kb_sync_loop())
     yield
     export_task.cancel()
     if _client:

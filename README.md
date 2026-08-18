@@ -113,7 +113,7 @@ curl http://localhost:8000/health
 | `WT_COMPANY_API_BASE_URL` | 公司数据网关地址 | — |
 | `WT_COMPANY_API_KEY` | 公司数据网关密钥 | — |
 | `WT_DIFY_DATASET_KEY` | 知识库（数据集）权限 Key | — |
-| `WT_DIFY_EXPORT_INTERVAL` | 知识库增量导出间隔（秒），0=关闭 | `300` |
+| `WT_DIFY_EXPORT_TIME` | 知识库每日同步时间（北京时间 HH:MM），空串=关闭定时同步（仅手动） | `01:00` |
 | `WT_DIFY_DATASET_INDEXING` | 知识库索引方式：`economy`（关键词）/ `high_quality`（向量，需 Embedding 模型） | `economy` |
 
 > 环境选择变量 `APP_ENV` 不带 `WT_` 前缀，只用于决定加载哪个 `.env` 文件，不是业务配置项。
@@ -130,7 +130,8 @@ curl http://localhost:8000/health
 | DELETE | `/api/bindings` | 删除绑定（软删除） |
 | POST | `/api/messages/record` | 记录对话记忆 |
 | GET | `/api/messages/history` | 查询对话历史（`session_id`） |
-| POST | `/api/messages/export` | 导出群对话到知识库 |
+| POST | `/api/messages/export` | 导出单个群对话到知识库（`session_id` + `since_id` 增量） |
+| POST | `/api/messages/sync` | 手动全量同步所有绑定知识库的群（与每日定时同步同逻辑） |
 
 ### 回调测试示例
 
