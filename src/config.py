@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # WorkTool API 地址
     api_base_url: str = "https://api.worktool.ymdyes.cn"
 
+    # 回调防抖：同一会话在窗口（秒）内的多条消息合并为一次工作流调用（只处理最新一条，
+    # 但所有消息仍会入库）；处理期间到达的消息串行排队不并发。0=关闭防抖（仍串行）。
+    debounce_seconds: float = 1.0
+
     # ---- Dify 主工作流（回调 → 整理参数 → /v1/workflows/run）----
     dify_base_url: str = "http://192.168.31.204"        # Dify 服务地址，如 http://192.168.31.204
     # 主工作流「WorkTool 回调消息处理」的 API Key（敏感，配置在 .env 文件: WT_DIFY_WORKFLOW_KEY）

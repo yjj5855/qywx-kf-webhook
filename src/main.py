@@ -14,7 +14,9 @@ from src.api_bindings import router as bindings_router
 from src.api_memory import router as memory_router
 from src.client import get_client
 from src.config import settings
+from src.debouncer import CallbackDebouncer
 from src.handler import get_handler
+from src.memory import ChatMemoryStore
 from src.models import CallbackRequest, CallbackResponse
 
 # ---- 日志配置 ----
@@ -78,28 +80,12 @@ app.include_router(bindings_router, prefix="/api")
 app.include_router(memory_router, prefix="/api")
 
 
-async def _process_message(req: CallbackRequest, robot_id: str) -> None:
-    """异步处理消息，通过 send_text 回复"""
-    # 消息去重：优先用 message_id，为空则用图片 base64 的 hash
-    dedup_key = req.message_id or ""
-    if not dedup_key and req.file_base64:
-        dedup_key = hashlib.md5(req.file_base64.encode()).hexdigest()
-    if dedup_key:
-        if dedup_key in _seen_message_ids:
-            logger.debug("重复消息 dedup_key=%r，跳过", dedup_key[:16])
-            return
-        _seen_message_ids.add(dedup_key)
-        if len(_seen_message_ids) > _MAX_SEEN_IDS:
-            _seen_message_ids.clear()
+async def _handle_and_reply(req: CallbackRequest, robot_id: str) -> None:
+    """执行一次处理：调用 handler 并按结果决定是否由 webhook 回复。
 
+    由防抖调度器触发（同一会话窗口内合并，只对最新一条调用）。
+    """
     try:
-        logger.info(
-            "收到消息 scene=%s session=%r spoken=%r at_me=%r",
-            req.scene,
-            req.session_id,
-            req.spoken,
-            req.at_me,
-        )
         handler = get_handler(robot_id)
         result = await handler.handle(req, robot_id)
         if result.reply_text:
@@ -121,6 +107,50 @@ async def _process_message(req: CallbackRequest, robot_id: str) -> None:
             )
     except Exception:
         logger.exception("处理消息失败 robot_id=%s", robot_id)
+
+
+# 回调防抖：同一会话窗口内的多条消息合并为一次工作流调用（全部消息仍先入库）
+_debouncer = CallbackDebouncer(window=settings.debounce_seconds, processor=_handle_and_reply)
+
+
+async def _process_message(req: CallbackRequest, robot_id: str) -> None:
+    """异步处理消息：去重 → 全量入库 → 防抖调度工作流调用"""
+    # 消息去重：优先用 message_id，为空则用图片 base64 的 hash
+    dedup_key = req.message_id or ""
+    if not dedup_key and req.file_base64:
+        dedup_key = hashlib.md5(req.file_base64.encode()).hexdigest()
+    if dedup_key:
+        if dedup_key in _seen_message_ids:
+            logger.debug("重复消息 dedup_key=%r，跳过", dedup_key[:16])
+            return
+        _seen_message_ids.add(dedup_key)
+        if len(_seen_message_ids) > _MAX_SEEN_IDS:
+            _seen_message_ids.clear()
+
+    logger.info(
+        "收到消息 scene=%s session=%r spoken=%r at_me=%r",
+        req.scene,
+        req.session_id,
+        req.spoken,
+        req.at_me,
+    )
+
+    # 全量记录用户消息：防抖合并后部分消息不会进工作流，但必须入库，
+    # 保证知识库导出与 recentContext 的完整性（机器人回复由 handler 记 bot 行）
+    user_msg = req.spoken or ("[图片]" if req.text_type == 2 else "")
+    if user_msg:
+        try:
+            ChatMemoryStore(settings.dify_db_path).append(
+                req.session_id, user_msg,
+                sender_name=req.received_name,
+                role="user",
+                group_name=req.group_name,
+            )
+        except Exception:
+            logger.exception("记录用户消息失败 session=%r", req.session_id)
+
+    # 防抖调度：同一会话窗口内多条消息合并，只对最新一条触发 _handle_and_reply
+    _debouncer.submit(req.session_id, (req, robot_id))
 
 
 # ---- 回调接口 ----

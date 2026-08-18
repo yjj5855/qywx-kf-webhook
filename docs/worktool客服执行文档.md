@@ -46,10 +46,12 @@ flowchart LR
 
 ```
 群消息 → 回调服务（3 秒内 ack，异步处理）
+  → 消息去重(messageId) + 用户消息全量入库
+  → 防抖合并：同一会话窗口（默认 1 秒）内多条消息只对最新一条调工作流
   → 读本地库：qaConversationId + 最近 12 条消息(recentContext)
   → POST Dify 主工作流 /v1/workflows/run（blocking）
   → 主工作流：门控 LLM → 意图 LLM → 大类路由 → 调子应用 → 发回复
-  → 回调服务解析输出：公司查询 action 由应用层执行；其余记录记忆
+  → 回调服务解析输出：公司查询 action 由应用层执行；其余记录 bot 回复
 ```
 
 ## 3. Dify 应用清单
@@ -195,10 +197,10 @@ start → 校验&预处理(code) → 不支持的媒体类型? → 兜底
 ## 8. 应用层（Java）职责
 
 ```
-回调入口(3秒ack) → 消息去重(messageId) → 异步处理
-  ├─ 读 MySQL：qaConversationId、最近6轮对话
-  ├─ 调主工作流（DTO: WorkflowRunRequest）
-  ├─ 持久化：qaConversationId、记忆(说话人+用户消息+回复+时间)
+回调入口(3秒ack) → 消息去重(messageId) → 用户消息全量入库 → 防抖合并(会话窗口)
+  ├─ 读 MySQL：qaConversationId、最近12条消息
+  ├─ 调主工作流（DTO: WorkflowRunRequest，窗口内只调一次、处理期间串行）
+  ├─ 持久化：qaConversationId、记忆(说话人+消息+回复+时间)
   └─ 解析输出：
        action=company_info_query
          → 查 group_bindings.company_ids
@@ -284,6 +286,7 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 | DIFY_WORKTOOL_APP_KEY | 客服操作工作流 API Key |
 | DIFY_COMPANY_APP_KEY | 公司信息查询工作流 API Key |
 | DIFY_DATASET_KEY | **数据集权限** Key（导出知识库用，应用 Key 无此权限） |
+| DEBOUNCE_SECONDS | 回调防抖窗口（秒）：同一会话窗口内多条消息合并为一次工作流调用，默认 1.0，0=关闭（仍串行） |
 | DIFY_EXPORT_TIME | 知识库每日同步时间（北京时间 HH:MM），空串=关闭定时同步（仅手动）；默认 01:00 |
 | COMPANY_API_BASE_URL / COMPANY_API_KEY | 公司数据网关 |
 | DB_URL / DB_USER / DB_PASSWORD | MySQL 连接 |
@@ -303,11 +306,12 @@ QA 前调 `POST /v1/datasets/{dataset_id}/retrieve` 检索群知识库，命中�
 1. **群无稳定 ID**：WorkTool 回调只有 groupName/groupRemark，先用客户群列表为每个群分配稳定 G 编码群ID（group_id），回调时按群名反查绑定；重名群（如默认名"群聊"）无法按名区分，需在企微侧重命名后重新导入（重名群初始化时 status=0 停用）。
 2. **3 秒回调约束**：WorkTool 要求 3 秒内响应，必须 ack 后异步处理。
 3. **意图不用 Chatflow**：Chatflow 历史存的是意图 JSON（噪音），且 Dify API 无法改写历史会话；意图识别用工作流内普通 LLM + 应用层记忆。
-4. **回复不双发**：问答/操作/追问由主工作流发消息，应用层只处理 `action=company_info_query` 的回复，切勿对 final_text 重复发送。
-5. **公司数据不出网**：company_ids、公司接口密钥都在应用层，Dify 只拿"查什么/查谁/查哪期"。
-6. **多机器人**：当前回复由主工作流环境变量 WT_ROBOT_ID 发送；若多机器人按回调 robotId 区分，应改为应用层统一发送（工作流只返回文本）。
-7. **时间**：库内存 UTC，展示/导出转北京时间。
-8. **知识库 Key**：导出用"数据集"权限类型的 API Key，应用 Key 无数据集权限。
+4. **回调防抖**：WorkTool 手机辅助模式会 1 秒内连续推送同群多条消息；同一会话窗口内（`DEBOUNCE_SECONDS`，默认 1 秒）合并为一次工作流调用、只回复最新一条，但**所有消息都会先入库**（知识库/上下文不丢）；处理期间到达的消息串行排队不并发。
+5. **回复不双发**：问答/操作/追问由主工作流发消息，应用层只处理 `action=company_info_query` 的回复，切勿对 final_text 重复发送。
+6. **公司数据不出网**：company_ids、公司接口密钥都在应用层，Dify 只拿"查什么/查谁/查哪期"。
+7. **多机器人**：当前回复由主工作流环境变量 WT_ROBOT_ID 发送；若多机器人按回调 robotId 区分，应改为应用层统一发送（工作流只返回文本）。
+8. **时间**：库内存 UTC，展示/导出转北京时间。
+9. **知识库 Key**：导出用"数据集"权限类型的 API Key，应用 Key 无数据集权限。
 
 ## 14. 已知限制与后续优化
 

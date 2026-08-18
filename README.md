@@ -106,6 +106,7 @@ curl http://localhost:8000/health
 | `WT_HOST` | 监听地址 | `0.0.0.0` |
 | `WT_PORT` | 监听端口 | `8000` |
 | `WT_API_BASE_URL` | WorkTool API 地址 | `https://api.worktool.ymdyes.cn` |
+| `WT_DEBOUNCE_SECONDS` | 回调防抖窗口（秒）：同一会话窗口内多条消息合并为一次工作流调用，全部消息仍入库 | `1.0` |
 | `WT_DIFY_BASE_URL` | Dify 服务地址 | — |
 | `WT_DIFY_WORKFLOW_KEY` | 主工作流 API Key | — |
 | `WT_DIFY_TIMEOUT` | 工作流调用超时（秒） | `30` |

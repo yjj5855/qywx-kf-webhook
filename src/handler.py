@@ -123,18 +123,10 @@ class DifyWorkflowHandler(MessageHandler):
 
     async def handle(self, req: CallbackRequest, robot_id: str = "") -> HandleResult:
         session_id = req.session_id
-        user_msg = req.spoken or ("[图片]" if req.text_type == 2 else "")
         group_name = req.group_name
 
-        # 全量消息流水：先记录用户消息（含未@闲聊、门控跳过的消息；机器人回复另行记 bot 行）
-        if user_msg:
-            self._memory.append(
-                session_id, user_msg,
-                sender_name=req.received_name,
-                role="user",
-                group_name=group_name,
-            )
-
+        # 用户消息已由回调层（main.py）全量记录（含防抖合并掉的消息），
+        # 这里只记录主工作流返回的 bot 回复（final_text），供知识库导出。
         try:
             outputs = await self._dify.run_workflow(
                 inputs=self._build_inputs(req),
