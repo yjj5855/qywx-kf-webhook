@@ -16,6 +16,8 @@
 - 兼容新版 Dify 输出字段解析（优先 data.outputs，回退顶层 result）
 
 ### 知识库绑定
+- 修复 create_by_text 在新版 Dify 返回 400 invalid_param：payload 补充 indexing_technique（与数据集索引方式一致）
+- 改进 kb.py / init_datasets.py 的 HTTP 报错携带 Dify 响应体（code/message），便于定位 4xx/5xx 根因
 - 新增 init_kb_bindings 脚本，从客户群 CSV 回填群专属知识库 dataset id 与公司 ID
 - 新增 sync_kb_ids_to_csv 脚本，把数据库 memory_dataset_id 与工作流 AppID 回填到 CSV
 - 更新 客户群列表 CSV 新增知识库ID 与 工作流AppID 列

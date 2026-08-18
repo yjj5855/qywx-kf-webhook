@@ -42,18 +42,34 @@ async def create_dataset_document(
 ) -> dict:
     """调用 Dify 创建知识库文档（create_by_text），返回响应 JSON。
 
-    注意：api_key 必须是「数据集」权限类型的 Dify API Key（应用「API 访问」页创建）。
+    注意：
+    - api_key 必须是「数据集」权限类型的 Dify API Key（应用「API 访问」页创建）；
+    - 新版 Dify 的 create_by_text 校验 KnowledgeConfig，payload 必须带
+      indexing_technique（与数据集创建时的索引方式一致），否则返回 400 invalid_param。
     """
+    from src.config import settings
+
     url = f"{base_url.rstrip('/')}/v1/datasets/{dataset_id}/document/create_by_text"
-    payload = {"name": name, "text": text}
+    payload = {
+        "name": name,
+        "text": text,
+        "indexing_technique": settings.dify_dataset_indexing,  # 与数据集索引方式一致：economy / high_quality
+    }
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
-        resp = await client.post(url, json=payload, headers=headers)
-        resp.raise_for_status()
-        return resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPStatusError as exc:
+        # 把 Dify 返回的错误体（code/message）带进异常，方便定位 4xx/5xx 根因
+        body = exc.response.text[:500]
+        raise RuntimeError(
+            f"Dify 创建知识库文档失败 HTTP {exc.response.status_code} dataset={dataset_id} body={body}"
+        ) from exc
 
 
 async def export_turns(

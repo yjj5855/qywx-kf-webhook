@@ -41,10 +41,15 @@ async def create_dataset(base_url: str, api_key: str, name: str, timeout: float 
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
-        resp = await client.post(url, json=payload, headers=headers)
-        resp.raise_for_status()
-        return resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPStatusError as exc:
+        # 把 Dify 返回的错误体带进异常，方便定位 4xx/5xx 根因
+        body = exc.response.text[:500]
+        raise RuntimeError(f"Dify 创建数据集失败 HTTP {exc.response.status_code} body={body}") from exc
 
 
 async def create_missing_datasets(only_with_company_ids: bool = False) -> dict:
