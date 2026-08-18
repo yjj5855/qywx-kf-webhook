@@ -28,6 +28,7 @@ src/
   models.py            # 数据模型
   api_bindings.py      # 群绑定管理接口
   api_memory.py        # 对话记忆 / 知识库导出接口
+  api_yuque.py         # 语雀外部知识库检索接口（Dify 外部知识库胶水服务）
   init_bindings.py     # 从 CSV 初始化群绑定
   init_kb_bindings.py  # 回填群知识库 dataset id
   init_datasets.py     # 批量创建群专属知识库
@@ -116,6 +117,11 @@ curl http://localhost:8000/health
 | `WT_DIFY_DATASET_KEY` | 知识库（数据集）权限 Key | — |
 | `WT_DIFY_EXPORT_TIME` | 知识库每日同步时间（北京时间 HH:MM，如 23:30 使文档名日期=当天聊天日期），空串=关闭定时同步（仅手动） | `23:30` |
 | `WT_DIFY_DATASET_INDEXING` | 知识库索引方式：`economy`（关键词）/ `high_quality`（向量，需 Embedding 模型） | `economy` |
+| `WT_YUQUE_TOKEN` | 语雀团队令牌（[获取地址](https://www.yuque.com/settings/tokens)），语雀外部知识库检索用 | — |
+| `WT_YUQUE_EXTERNAL_KEY` | Dify「连接外部知识库」时填写的 API Key，本服务 `/retrieval` 鉴权用 | — |
+| `WT_YUQUE_API_BASE` | 语雀开放 API 基础地址（企业版改成 `https://{企业域名}.yuque.com/api/v2`） | `https://www.yuque.com/api/v2` |
+| `WT_YUQUE_SCOPE` | 默认搜索范围，形如 `团队login/知识库slug`（如 `myteam/mywiki`）；留空=搜索全部可见内容 | — |
+| `WT_YUQUE_KB_SCOPES` | 外部知识库 ID → 语雀搜索范围映射（JSON），如 `{"yuque-wiki": "myteam/mywiki"}`；未匹配回退 `WT_YUQUE_SCOPE` | `{}` |
 
 > 环境选择变量 `APP_ENV` 不带 `WT_` 前缀，只用于决定加载哪个 `.env` 文件，不是业务配置项。
 
@@ -133,6 +139,18 @@ curl http://localhost:8000/health
 | GET | `/api/messages/history` | 查询对话历史（`session_id`） |
 | POST | `/api/messages/export` | 导出单个群对话到知识库（`session_id` + `since_id` 增量） |
 | POST | `/api/messages/sync` | 手动全量同步所有绑定知识库的群（与每日定时同步同逻辑） |
+| POST | `/retrieval` | 语雀外部知识库检索（Dify「连接外部知识库」适配端点） |
+
+### 语雀外部知识库接入 Dify
+
+1. 在 `.env` 配置 `WT_YUQUE_TOKEN`（语雀团队令牌，[获取地址](https://www.yuque.com/settings/tokens)）和 `WT_YUQUE_EXTERNAL_KEY`（自定义强密码）；如需限定搜索范围，配置 `WT_YUQUE_SCOPE` 或 `WT_YUQUE_KB_SCOPES`。
+2. 重启服务后，进入 **Dify 后台 > 知识库 > 连接外部知识库**：
+   - **API 端点**：填 `http://<本服务地址>:8000/retrieval`（新版本 Dify 会自动在填写的地址后追加 `/retrieval`，两者皆可）；
+   - **API Key**：填 `WT_YUQUE_EXTERNAL_KEY` 的值；
+   - **外部知识库 ID**：填一个自定义 ID（如 `yuque-wiki`），若配置了 `WT_YUQUE_KB_SCOPES` 映射，该 ID 会决定检索哪个语雀知识库。
+3. 在应用内选择该外部知识库即可检索语雀文档（返回内容为 Markdown 正文）。
+
+> 说明：语雀搜索不返回相关性分数，`score` 按排名估算（第 1 名 0.95，逐名递减 0.1），Dify 侧可据此做阈值过滤与排序；语雀 API 有频率限制，每次检索会按 `top_k` 并发拉取正文（每文档一次详情请求，搜索结果自带正文时不再请求）。
 
 ### 回调测试示例
 

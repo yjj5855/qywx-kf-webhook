@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 
 from src.api_bindings import router as bindings_router
 from src.api_memory import router as memory_router
+from src.api_yuque import router as yuque_router
 from src.client import get_client
 from src.config import settings
 from src.debouncer import CallbackDebouncer
@@ -40,10 +41,10 @@ _log_handler.setFormatter(
 _project_loggers = (
     "__main__",
     "main", "handler", "client", "dify_client", "exporter", "kb",
-    "binding", "memory", "api_bindings", "api_memory",
+    "binding", "memory", "api_bindings", "api_memory", "api_yuque",
     "src.main", "src.handler", "src.client", "src.dify_client",
     "src.exporter", "src.kb", "src.binding", "src.memory",
-    "src.api_bindings", "src.api_memory",
+    "src.api_bindings", "src.api_memory", "src.api_yuque",
 )
 for _name in _project_loggers:
     _pkg = logging.getLogger(_name)
@@ -78,6 +79,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="WorkTool Callback Service", lifespan=lifespan)
 app.include_router(bindings_router, prefix="/api")
 app.include_router(memory_router, prefix="/api")
+# 语雀外部知识库检索端点：Dify 配置的外部知识库 API 地址需以 /retrieval 结尾，
+# 即填 http://<host>:8000/retrieval（新版本 Dify 会自动在填写的地址后追加 /retrieval）
+app.include_router(yuque_router)
 
 
 async def _handle_and_reply(req: CallbackRequest, robot_id: str) -> None:

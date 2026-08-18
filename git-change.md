@@ -4,6 +4,12 @@
 
 ## [开发中]
 
+### 语雀外部知识库胶水服务
+- 新增 POST /retrieval（src/api_yuque.py）：Dify「连接外部知识库」适配端点，按 Dify 外部知识库 API 规范实现（Authorization: Bearer 鉴权、records 返回 content/score/title/metadata），实现语雀检索（GET /api/v2/search，type=doc）→ 拉取文档 Markdown 正文（搜索自带 body 或二次调详情接口，asyncio 并发）→ 组装 Dify 响应
+- 新增配置：WT_YUQUE_TOKEN（语雀团队令牌）、WT_YUQUE_EXTERNAL_KEY（Dify 端 API Key）、WT_YUQUE_API_BASE（支持企业版域名）、WT_YUQUE_SCOPE（默认搜索范围）、WT_YUQUE_KB_SCOPES（外部知识库 ID → 语雀知识库范围映射，JSON）
+- score 按搜索排名估算（第 1 名 0.95 逐名递减 0.1），支持 Dify 的 score_threshold 过滤；metadata 恒为对象避免 Dify 报错
+- 文档更新：README 增加配置项、API 表与 Dify 接入步骤
+
 ### 回调服务
 - 调整 主工作流调用失败时不再给客户发送"服务暂时不可用"兜底文案，只记日志（避免与超时后迟到的真实回复重复）
 - 新增 回调防抖（src/debouncer.py）：同一会话窗口内（WT_DEBOUNCE_SECONDS 默认 1 秒）多条消息合并为一次工作流调用、只处理最新一条；处理期间到达的消息串行排队不并发；所有消息先在回调层全量入库（用户消息记录从 handler 移到 main.py），知识库/上下文不丢

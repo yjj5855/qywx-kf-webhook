@@ -48,5 +48,18 @@ class Settings(BaseSettings):
     # 知识库索引方式：economy=关键词索引（免向量模型，默认）/ high_quality=语义索引（需 Dify 配置 Embedding 模型）
     dify_dataset_indexing: str = "economy"
 
+    # ---- 语雀外部知识库（Dify 外部知识库胶水服务，POST /retrieval）----
+    # 语雀团队令牌（https://www.yuque.com/settings/tokens 获取，敏感，配置在 .env 文件: WT_YUQUE_TOKEN）
+    yuque_token: str = ""
+    # Dify「连接外部知识库」时填写的 API Key（与 Dify 配置一致，敏感，配置在 .env 文件: WT_YUQUE_EXTERNAL_KEY）
+    yuque_external_key: str = ""
+    # 语雀开放 API 基础地址（企业版改成 https://{企业域名}.yuque.com/api/v2）
+    yuque_api_base: str = "https://www.yuque.com/api/v2"
+    # 默认搜索范围，形如 "团队login/知识库slug"（如 myteam/mywiki）；留空=搜索当前账号可见的全部内容
+    yuque_scope: str = ""
+    # 外部知识库 ID → 语雀搜索范围 的映射（JSON），如 {"yuque-wiki": "myteam/mywiki"}，
+    # 让 Dify 里不同的"外部知识库 ID"各自限定到不同语雀知识库；未匹配到该 ID 时回退 yuque_scope
+    yuque_kb_scopes: str = "{}"
+
 
 settings = Settings()
