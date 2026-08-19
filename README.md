@@ -24,6 +24,7 @@ src/
   session_store.py     # 会话 ID 存储
   company.py           # 公司信息查询
   kb.py                # 知识库文档写入
+  company_profile.py   # 群公司档案：客服手写公司描述 → 群知识库（构建/同步）
   exporter.py          # 知识库增量导出定时任务
   models.py            # 数据模型
   api_bindings.py      # 群绑定管理接口
@@ -33,6 +34,7 @@ src/
   init_kb_bindings.py  # 回填群知识库 dataset id
   init_datasets.py     # 批量创建群专属知识库
   sync_kb_ids_to_csv.py# 把知识库/工作流 ID 回填到 CSV
+  sync_company_profiles.py  # 群公司档案：生成客服模板 / 同步到群知识库 / 清理
 dify/                 # Dify 工作流 YAML
 docs/                 # 文档、客户群 CSV、执行文档
 data/                 # SQLite 数据库（gitignore）
@@ -117,6 +119,7 @@ curl http://localhost:8000/health
 | `WT_DIFY_DATASET_KEY` | 知识库（数据集）权限 Key | — |
 | `WT_DIFY_EXPORT_TIME` | 知识库每日同步时间（北京时间 HH:MM，如 23:30 使文档名日期=当天聊天日期），空串=关闭定时同步（仅手动） | `23:30` |
 | `WT_DIFY_DATASET_INDEXING` | 知识库索引方式：`economy`（关键词）/ `high_quality`（向量，需 Embedding 模型） | `economy` |
+| `WT_COMPANY_PROFILE_DIR` | 群公司档案目录（客服手写的 `{群ID}.md` 描述文件，相对项目根目录或绝对路径） | `docs/公司档案` |
 | `WT_YUQUE_TOKEN` | 语雀团队令牌（[获取地址](https://www.yuque.com/settings/tokens)），语雀外部知识库检索用 | — |
 | `WT_YUQUE_EXTERNAL_KEY` | Dify「连接外部知识库」时填写的 API Key，本服务 `/retrieval` 鉴权用 | — |
 | `WT_YUQUE_API_BASE` | 语雀开放 API 基础地址（企业版改成 `https://{企业域名}.yuque.com/api/v2`） | `https://www.yuque.com/api/v2` |
@@ -176,12 +179,37 @@ curl -s -X POST "http://localhost:8000/callback?robotId=wtgxpt9udc4pb4hgj0rnn139
 | `init_kb_bindings.py` | 按已有 `群记忆_*` 知识库回填 dataset id | `python -m src.init_kb_bindings [csv路径]` |
 | `init_datasets.py` | 批量创建群专属知识库 | `python -m src.init_datasets [--with-company]` |
 | `sync_kb_ids_to_csv.py` | 把知识库/工作流 ID 回填到 CSV | `python -m src.sync_kb_ids_to_csv [csv路径]` |
+| `sync_company_profiles.py` | 群公司档案：生成客服模板 / 同步到群知识库 / 清理残留 | `python -m src.sync_company_profiles [--init] [--force] [--dry-run] [--prune]` |
 
 生产环境执行脚本需带 `APP_ENV=prod`：
 
 ```bash
 APP_ENV=prod python -m src.init_datasets --with-company
 ```
+
+## 群公司档案（客服手写公司描述 → 群知识库）
+
+每个群知识库除每日对话流水外，还会有一份固定文档 **`群档案_{群ID}`**，内容是**客服手写**的
+该群对应公司信息描述（一个群可对应多家公司，一家一块）。客服写作要求见
+[`docs/公司档案写作规范.md`](docs/公司档案写作规范.md)。
+
+工作流：
+
+```bash
+# 1. 为已绑定公司ID且缺档案的群生成模板（docs/公司档案/{群ID}.md，公司名从群名预填）
+python -m src.sync_company_profiles --init
+
+# 2. 客服按写作规范填写各公司块（编辑 docs/公司档案/{群ID}.md）
+
+# 3. 同步到群知识库：删同名旧文档后重建一份，幂等
+python -m src.sync_company_profiles
+
+# 可选：--force 重新生成并覆盖模板；--dry-run 只预览；--prune 清理"档案已删除"的残留文档
+```
+
+- 档案文本遵循向量索引设计：每公司块首句为完整自然语言句、块间空行分隔、头部一句话列全公司名；
+- 群绑定变更（`POST /api/bindings`）时会自动尝试同步该群档案（缺档案/未绑定知识库则跳过）；
+- 档案文件存在但被清空 = 从知识库移除该档案；文件被删除后需跑 `--prune` 清理残留文档。
 
 ## 日志
 

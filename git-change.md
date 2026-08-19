@@ -4,6 +4,16 @@
 
 ## [开发中]
 
+### 群公司档案（客服手写公司描述 → 群知识库）
+- 新增 src/company_profile.py：构建「群-公司档案」文本（群信息 + 每公司一块，块首为完整自然语言句，适配向量索引 high_quality / semantic_search）并同步进群知识库（文档名固定 `群档案_{group_id}`，先删同名旧文档再重建，幂等；档案文件被清空 = 从知识库移除）
+- 新增 src/sync_company_profiles.py：`--init` 为已绑定公司ID且缺档案的群生成模板（公司名从群名启发式预填）；默认同步已有档案文件到群知识库；`--force` 覆盖模板 / `--dry-run` 预览 / `--prune` 清理档案文件已删除的残留文档
+- 新增配置 WT_COMPANY_PROFILE_DIR（默认 docs/公司档案，客服按 `{group_id}.md` 维护描述）
+- POST /api/bindings 绑定变更后自动尝试同步该群档案（缺档案/未绑定知识库则跳过，异步不阻塞接口）
+- 新增 docs/公司档案写作规范.md：对客服的档案写作要求（块首完整句、全称/简称/别名、每块 100~300 字、块间空行、多公司编号固定、敏感信息不写、自查清单、好/坏示例）
+- 修复 模板首行一级标题被 Dify 剥掉：Dify 解析文档时会去掉行首单个 "# " 标记（"##"/"###" 不受影响），模板改为普通段落开场（文档名本身即标题），写作规范同步更新（src/company_profile.py、docs/公司档案写作规范.md）
+- 修复 create_by_text 响应取不到 id：部分 Dify 版本返回 {"document": {...}}，kb.py 归一化为文档对象，调用方统一从顶层取 id
+- 修复 DELETE 文档成功但返回空 body 时误报 JSONDecodeError：company_profile.delete_document 容忍空响应体（HTTP 200 即成功）
+
 ### 对话记忆
 - 修复 recentContext 包含当前消息：当前消息已由 spoken 单独传给主工作流，不应再出现在历史上下文里；memory.to_context 新增 exclude_latest 参数（多取一条再丢弃最新，历史仍保留最多 12 条），handler._build_inputs 构建 recentContext 时启用（src/memory.py、src/handler.py）
 

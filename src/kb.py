@@ -70,7 +70,12 @@ async def create_dataset_document(
         async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+        # 部分 Dify 版本 create_by_text 返回 {"document": {...}}，归一化为文档对象，
+        # 让调用方统一从顶层取 id（如 document["id"]）
+        if isinstance(data, dict) and isinstance(data.get("document"), dict):
+            return data["document"]
+        return data
     except httpx.HTTPStatusError as exc:
         # 把 Dify 返回的错误体（code/message）带进异常，方便定位 4xx/5xx 根因
         body = exc.response.text[:500]

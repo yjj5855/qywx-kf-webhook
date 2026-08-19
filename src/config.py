@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     dify_export_time: str = "23:30"
     # 知识库索引方式：economy=关键词索引（免向量模型，默认）/ high_quality=语义索引（需 Dify 配置 Embedding 模型）
     dify_dataset_indexing: str = "economy"
+    # 群公司档案目录（相对项目根目录或绝对路径）：客服手写的群-公司信息描述
+    # Markdown 文件存放处，每群一个 {group_id}.md，由 src.sync_company_profiles 同步进群知识库
+    company_profile_dir: str = "docs/公司档案"
 
     # ---- 语雀外部知识库（Dify 外部知识库胶水服务，POST /retrieval）----
     # 语雀团队令牌（https://www.yuque.com/settings/tokens 获取，敏感，配置在 .env 文件: WT_YUQUE_TOKEN）

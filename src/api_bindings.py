@@ -2,14 +2,23 @@
 
 company_ids 由 webhook 侧解析后作为 companyIds 传入主工作流，
 供工作流内部路由/公司查询使用。平台目前固定为 wecom（企业微信 WorkTool）。
+
+绑定变更（POST）后会自动尝试把该群的客服档案（docs/公司档案/{group_id}.md）
+同步进群知识库；缺档案/未绑定知识库时静默跳过，不影响绑定接口本身。
 """
 from __future__ import annotations
+
+import asyncio
+import logging
 
 from fastapi import APIRouter, HTTPException
 
 from src.binding import BindingStore, normalize_company_ids
+from src.company_profile import sync_group_profile
 from src.config import settings
 from src.models import BindingItem
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bindings", tags=["bindings"])
 
@@ -48,6 +57,12 @@ async def upsert_binding(item: BindingItem):
         workflow_app_id=item.workflow_app_id,
         memory_dataset_id=item.memory_dataset_id,
     )
+    # 绑定变更后尽量同步最新档案到群知识库；sync_group_profile 内部已兜底异常，
+    # 这里仅防 create_task 本身失败（如事件循环未运行），不影响接口响应
+    try:
+        asyncio.create_task(sync_group_profile(item.platform, item.group_id))
+    except Exception:
+        logger.exception("触发群公司档案同步失败 group=%s", item.group_id)
     return {"code": 0, "message": "ok", "data": _get_store().get(item.platform, item.group_id)}
 
 
