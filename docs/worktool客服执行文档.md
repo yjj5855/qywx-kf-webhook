@@ -48,7 +48,7 @@ flowchart LR
 群消息 → 回调服务（3 秒内 ack，异步处理）
   → 消息去重(messageId) + 用户消息全量入库
   → 防抖合并：同一会话窗口（默认 1 秒）内多条消息只对最新一条调工作流
-  → 读本地库：qaConversationId + 最近 12 条消息(recentContext)
+  → 读本地库：qaConversationId + 最近 12 条历史消息(recentContext，不含当前消息)
   → POST Dify 主工作流 /v1/workflows/run（blocking）
   → 主工作流：门控 LLM → 意图 LLM → 大类路由 → 调子应用 → 发回复
   → 回调服务解析输出：公司查询 action 由应用层执行；其余记录 bot 回复
@@ -150,7 +150,7 @@ POST /callback?robotId={robotId}
 | fileBase64 | fileBase64 | 截断 256 字符（当前链路不消费图片内容） |
 | messageId | messageId | 去重用 |
 | 会话表读出 | qaConversationId | 客服问答会话ID，首次为空 |
-| chat_memory 最近 12 条消息 | recentContext | 格式：`【历史对话】\n说话人: 内容\n…\n机器人: 内容`（多人消息原序），上限 1500 字符 |
+| chat_memory 最近 12 条历史消息（不含当前消息） | recentContext | 格式：`【历史对话】\n说话人: 内容\n…\n机器人: 内容`（多人消息原序），上限 1500 字符；当前消息经 spoken 单独传入 |
 
 ### 5.3 主工作流输出（结束节点）
 

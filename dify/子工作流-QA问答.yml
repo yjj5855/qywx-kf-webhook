@@ -370,8 +370,10 @@ workflow:
               {
                 "query": "{{#start.spoken#}}",
                 "retrieval_model": {
-                  "search_method": "keyword_search",
+                  "search_method": "semantic_search",
+                  "reranking_enable": false,
                   "top_k": 4,
+                  "score_threshold_enabled": true,
                   "score_threshold": 0.3
                 }
               }
@@ -499,8 +501,10 @@ workflow:
               {
                 "query": "{{#start.spoken#}}",
                 "retrieval_model": {
-                  "search_method": "keyword_search",
+                  "search_method": "semantic_search",
+                  "reranking_enable": false,
                   "top_k": 4,
+                  "score_threshold_enabled": true,
                   "score_threshold": 0.3
                 }
               }

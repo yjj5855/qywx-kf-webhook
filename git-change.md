@@ -4,6 +4,13 @@
 
 ## [开发中]
 
+### 对话记忆
+- 修复 recentContext 包含当前消息：当前消息已由 spoken 单独传给主工作流，不应再出现在历史上下文里；memory.to_context 新增 exclude_latest 参数（多取一条再丢弃最新，历史仍保留最多 12 条），handler._build_inputs 构建 recentContext 时启用（src/memory.py、src/handler.py）
+
+### 知识库检索修复
+- 修复 QA 子工作流检索知识库报 400（Dify ≥ 1.14 对 POST /v1/datasets/{id}/retrieve 的 retrieval_model 做 pydantic 校验，reranking_enable / top_k / score_threshold_enabled / search_method 为必填）：子工作流-QA问答.yml 的「检索制度知识库」「检索群记忆知识库」两个 HTTP 节点请求体补充 reranking_enable=false 与 score_threshold_enabled=true（true 时 score_threshold=0.3 才生效）；需在 Dify 控制台同步更新这两个节点或重新导入该 yml
+- 修复 检索返回空结果：知识库「服务知识库」(429c5dd2) 为 high_quality（向量）索引，keyword_search 在该库上永远命中不到（实测「退休」「男性」「女 1977-07 什么时候退休」均返回空 records，semantic_search 正常返回分数 0.55+ 的记录）；两个 HTTP 节点检索方式由 keyword_search 改为 semantic_search（阈值 0.3 语义检索可正常过滤）；注意若某知识库为 economy（关键词）索引则 semantic_search 会报错，需按库的索引方式选择检索方式
+
 ### 语雀外部知识库胶水服务
 - 新增 POST /retrieval（src/api_yuque.py）：Dify「连接外部知识库」适配端点，按 Dify 外部知识库 API 规范实现（Authorization: Bearer 鉴权、records 返回 content/score/title/metadata），实现语雀检索（GET /api/v2/search，type=doc）→ 拉取文档 Markdown 正文（搜索自带 body 或二次调详情接口，asyncio 并发）→ 组装 Dify 响应
 - 新增配置：WT_YUQUE_TOKEN（语雀团队令牌）、WT_YUQUE_EXTERNAL_KEY（Dify 端 API Key）、WT_YUQUE_API_BASE（支持企业版域名）、WT_YUQUE_SCOPE（默认搜索范围）、WT_YUQUE_KB_SCOPES（外部知识库 ID → 语雀知识库范围映射，JSON）

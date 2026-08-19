@@ -130,8 +130,10 @@ class DifyWorkflowHandler(MessageHandler):
             # Dify 侧 start 输入限长 256，且当前意图链路不消费图片内容，仅透传占位
             "fileBase64": req.file_base64[:256],
             "messageId": req.message_id,
-            # 最近几轮真实对话（用户消息 + 机器人回复），由主工作流注入意图识别 LLM 的上下文
-            "recentContext": self._memory.to_context(req.session_id),
+            # 最近几轮历史对话（用户消息 + 机器人回复），由主工作流注入意图识别 LLM 的上下文；
+            # 当前消息已通过 spoken 单独传入，须用 exclude_latest 排除最新一条，
+            # 否则当前消息会重复出现在【历史对话】里
+            "recentContext": self._memory.to_context(req.session_id, exclude_latest=True),
             # 群绑定的公司 ID（顿号分隔），供主工作流内部路由/公司查询使用
             "companyIds": self._resolve_company_ids(req),
             # 群记忆知识库 ID，供 QA 子工作流动态检索群聊历史（未绑定为空）

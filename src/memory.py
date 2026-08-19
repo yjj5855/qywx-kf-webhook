@@ -202,8 +202,17 @@ class ChatMemoryStore:
                 )
             conn.commit()
 
-    def to_context(self, session_id: str, limit: int = CTX_TURNS) -> str:
+    def to_context(
+        self,
+        session_id: str,
+        limit: int = CTX_TURNS,
+        exclude_latest: bool = False,
+    ) -> str:
         """把最近几条消息格式化为注入意图分类 query 的上下文文本（消息流水，多人原序）。
+
+        exclude_latest=True 时去掉最新一条：当前消息已由 spoken 单独传给工作流，
+        recentContext 只应承载历史对话，不应把当前消息重复进上下文
+        （多取一条再丢弃最新，历史仍保留最多 limit 条）。
 
         格式：
         【历史对话】
@@ -212,7 +221,9 @@ class ChatMemoryStore:
         机器人: ...
         ...
         """
-        msgs = self.history(session_id, limit)
+        msgs = self.history(session_id, limit + (1 if exclude_latest else 0))
+        if exclude_latest and msgs:
+            msgs = msgs[:-1]  # 丢弃最新一条（当前消息，已由 spoken 单独传入）
         if not msgs:
             return ""
         lines = ["【历史对话】"]
