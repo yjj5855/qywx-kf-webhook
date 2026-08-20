@@ -18,6 +18,30 @@ version: 0.7.0
 workflow:
   conversation_variables: []
   environment_variables:
+  - description: 公司 api 可支持的查询操作
+    id: 9f5eeddc-30fb-4e81-8aaf-8ae115dd4854
+    name: WT_COMPANY_OP_DESC
+    selector:
+    - env
+    - WT_COMPANY_OP_DESC
+    value: 账单、员工、发票、凭证、报表
+    value_type: string
+  - description: 客服的 worktool 支持的操作意图
+    id: 50bcb8eb-45ce-48cb-884c-b0b349538026
+    name: WT_INTENT_WORKTOOL_DESC
+    selector:
+    - env
+    - WT_INTENT_WORKTOOL_DESC
+    value: 建群、拉人、加好友
+    value_type: string
+  - description: 客服咨询的问题类型
+    id: 2c8a1da1-aaea-4105-a5ea-ca9f0e078c95
+    name: WT_INTENT_QA_DESC
+    selector:
+    - env
+    - WT_INTENT_QA_DESC
+    value: 新开户流程、开户咨询、企业注册咨询
+    value_type: string
   - description: WorkTool API 基础地址
     id: env_api_base_url
     name: WT_API_BASE_URL
@@ -42,30 +66,6 @@ workflow:
     - DIFY_BASE_URL
     value: http://106.15.2.224
     value_type: string
-  - description: 客服问答 Chatflow（客服QA应用，需配置知识库）的 API Key
-    id: env_dify_qa_app_key
-    name: DIFY_QA_APP_KEY
-    selector:
-    - env
-    - DIFY_QA_APP_KEY
-    value: ''
-    value_type: secret
-  - description: WorkTool 操作子工作流（客服操作工作流应用）的 API Key
-    id: env_dify_worktool_app_key
-    name: DIFY_WORKTOOL_APP_KEY
-    selector:
-    - env
-    - DIFY_WORKTOOL_APP_KEY
-    value: ''
-    value_type: secret
-  - description: 公司信息查询子工作流（公司信息查询工作流应用）的 API Key
-    id: env_dify_company_app_key
-    name: DIFY_COMPANY_APP_KEY
-    selector:
-    - env
-    - DIFY_COMPANY_APP_KEY
-    value: ''
-    value_type: secret
   - description: 意图识别置信度阈值
     id: env_confidence_threshold
     name: CONFIDENCE_THRESHOLD
@@ -212,32 +212,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        sourceType: llm
-        targetType: code
-      id: e_llm_normalize
-      selected: false
-      source: llm_gate
-      sourceHandle: source
-      target: code_gate_normalize
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: code
-        targetType: if-else
-      id: e_normalize_result
-      selected: false
-      source: code_gate_normalize
-      sourceHandle: source
-      target: if_gate_result
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
         sourceType: if-else
         targetType: llm
       id: e_result_true_intent
@@ -371,6 +345,7 @@ workflow:
         sourceType: code
         targetType: code
       id: 1786699657898-source-code_final_text-target
+      selected: false
       source: '1786699657898'
       sourceHandle: source
       target: code_final_text
@@ -396,6 +371,7 @@ workflow:
         sourceType: tool
         targetType: code
       id: 1786946212929-source-1786699657898-target
+      selected: false
       source: '1786946212929'
       sourceHandle: source
       target: '1786699657898'
@@ -406,34 +382,9 @@ workflow:
         isInIteration: false
         isInLoop: false
         sourceType: if-else
-        targetType: tool
-      id: if_category_route-qa-1786955779149-target
-      selected: false
-      source: if_category_route
-      sourceHandle: qa
-      target: '1786955779149'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: tool
-        targetType: code
-      id: 1786955779149-source-code_parse_qa-target
-      selected: false
-      source: '1786955779149'
-      sourceHandle: source
-      target: code_parse_qa
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: if-else
         targetType: agent
       id: if_category_route-company-1787015957024-target
+      selected: false
       source: if_category_route
       sourceHandle: company
       target: '1787015957024'
@@ -446,6 +397,7 @@ workflow:
         sourceType: agent
         targetType: code
       id: 1787015957024-source-17870177378890-target
+      selected: false
       source: '1787015957024'
       sourceHandle: source
       target: '17870177378890'
@@ -458,9 +410,60 @@ workflow:
         sourceType: code
         targetType: code
       id: 17870177378890-source-code_final_text-target
+      selected: false
       source: '17870177378890'
       sourceHandle: source
       target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: if_category_route-qa-1787037411694-target
+      selected: false
+      source: if_category_route
+      sourceHandle: qa
+      target: '1787037411694'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1787037411694-source-code_parse_qa-target
+      selected: false
+      source: '1787037411694'
+      sourceHandle: source
+      target: code_parse_qa
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm_gate-source-1787109065018-target
+      source: llm_gate
+      sourceHandle: source
+      target: '1787109065018'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: 1787109065018-source-if_gate_result-target
+      source: '1787109065018'
+      sourceHandle: source
+      target: if_gate_result
       targetHandle: target
       type: custom
       zIndex: 0
@@ -521,10 +524,10 @@ workflow:
           required: false
           type: text-input
           variable: messageId
-        - label: recentContext
-          max_length: 2048
+        - label: 历史对话
+          max_length: 25600
           required: false
-          type: text-input
+          type: paragraph
           variable: recentContext
         - default: ''
           hint: ''
@@ -535,14 +538,23 @@ workflow:
           required: false
           type: text-input
           variable: companyIds
-      height: 395
+        - default: ''
+          hint: ''
+          label: 群知识库id
+          max_length: 256
+          options: []
+          placeholder: ''
+          required: false
+          type: text-input
+          variable: datasetId
+      height: 421
       id: start
       position:
-        x: -77.79582421112423
-        y: 299
+        x: 0
+        y: 0
       positionAbsolute:
-        x: -77.79582421112423
-        y: 299
+        x: 0
+        y: 0
       selected: false
       type: custom
       width: 242
@@ -670,11 +682,11 @@ workflow:
       height: 52
       id: code_validate
       position:
-        x: 300
-        y: 320
+        x: 342
+        y: 254.66666666666663
       positionAbsolute:
-        x: 300
-        y: 320
+        x: 342
+        y: 254.66666666666663
       selected: false
       type: custom
       width: 242
@@ -696,11 +708,11 @@ workflow:
       height: 148
       id: if_unsupported
       position:
-        x: 620
-        y: 320
+        x: 684
+        y: 215.33333333333326
       positionAbsolute:
-        x: 620
-        y: 320
+        x: 684
+        y: 215.33333333333326
       selected: false
       type: custom
       width: 242
@@ -722,11 +734,11 @@ workflow:
       height: 148
       id: if_gate
       position:
-        x: 940
-        y: 240
+        x: 1046
+        y: 355.1333333333333
       positionAbsolute:
-        x: 940
-        y: 240
+        x: 1046
+        y: 355.1333333333333
       selected: false
       type: custom
       width: 242
@@ -746,19 +758,46 @@ workflow:
         prompt_template:
         - id: prompt_gate_system
           role: system
-          text: '你是群聊回复门控器。请判断最后一条消息是否应由机器人在群聊公开回复。
+          text: '你是群聊回复门控器。
 
 
-            规则：如果最后一条消息意图是建群、拉人进群、添加好友、查询公司信息（员工/账单/财务/人事/社保公积金等），或是对机器人的客服提问（咨询业务、产品、服务等问题），则返回
-            YES；
+            ## 任务
 
-            如果更像成员间闲聊、互相对话、与机器人无关，则返回 NO。
+            结合对话历史，判断最后一条用户消息是否应由机器人回复，并还原用户的真实问题。
 
 
-            输出要求：最后一行只输出 YES 或 NO（思考过程可以写在 <thinking> 标签里，但最终判定必须单独一行）。'
+            ## 真实问题还原规则
+
+            - 若最后一条消息含指代（如"那上一个月的呢？"、"那它呢？"），结合历史将指代替换为具体实体，输出完整提问。
+
+            - 若本身已清晰，直接复制原消息。
+
+
+            ## 回复判定规则
+
+            - should_reply = true：意图为{{#env.WT_INTENT_WORKTOOL_DESC#}}、查询公司信息（员工/账单/财务/人事/社保公积金等）、客服咨询（{{#env.WT_INTENT_QA_DESC#}}）。
+
+            - should_reply = false：成员间闲聊、互相对话、与机器人无关。
+
+
+            ## 输出格式（严格 JSON）
+
+            {"real_question": "完整问题", "should_reply": true/false, "reason": "判定理由"}
+
+
+            ## 示例
+
+            对话：用户:"8月账单？" 机器人:"12345元" 用户:"那上个月呢？"
+
+            输出：{"real_question": "7月账单金额？", "should_reply": true, "reason": "账单查询"}
+
+
+            现在开始处理。'
         - id: prompt_gate_user
           role: user
-          text: '群名：{{#code_validate.groupRemark#}} 或 {{#code_validate.groupName#}}
+          text: '群名：  {{#code_validate.groupName#}}
+
+            {{#start.recentContext#}}
 
             发送者：{{#code_validate.receivedName#}}
 
@@ -775,50 +814,11 @@ workflow:
       height: 88
       id: llm_gate
       position:
-        x: 1260
-        y: 140
+        x: 1408
+        y: 399.9333333333333
       positionAbsolute:
-        x: 1260
-        y: 140
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        code: "import re\n\ndef main(llm_text: str):\n    \"\"\"归一化门控 LLM 输出：去掉思考标签，取最后一个非空行判定\
-          \ YES/NO。\"\"\"\n    if not llm_text:\n        return {\"gate_pass\": False,\
-          \ \"gate_raw\": \"\"}\n    text = llm_text.strip()\n    # 去掉思考块（兼容 <thinking>\
-          \ 与 <think> 标签）\n    text = re.sub(r\"<thinking>.*?</thinking>\", \"\",\
-          \ text, flags=re.S)\n    text = re.sub(r\"<think>.*?</think>\", \"\", text,\
-          \ flags=re.S)\n    text = text.strip()\n    lines = [ln.strip() for ln in\
-          \ text.splitlines() if ln.strip()]\n    last = (lines[-1] if lines else\
-          \ text).upper()\n    return {\n        \"gate_pass\": last == \"YES\" or\
-          \ last.startswith(\"YES\"),\n        \"gate_raw\": text,\n    }\n"
-        code_language: python3
-        outputs:
-          gate_pass:
-            children: null
-            type: boolean
-          gate_raw:
-            children: null
-            type: string
-        selected: false
-        title: 门控结果归一化
-        type: code
-        variables:
-        - value_selector:
-          - llm_gate
-          - text
-          value_type: string
-          variable: llm_text
-      height: 52
-      id: code_gate_normalize
-      position:
-        x: 1580
-        y: 140
-      positionAbsolute:
-        x: 1580
-        y: 140
+        x: 1408
+        y: 399.9333333333333
       selected: false
       type: custom
       width: 242
@@ -828,10 +828,11 @@ workflow:
         - case_id: 'true'
           conditions:
           - comparison_operator: is
-            value: 'true'
+            value: true
+            varType: boolean
             variable_selector:
-            - code_gate_normalize
-            - gate_pass
+            - '1787109065018'
+            - should_reply
           id: 'true'
           logical_operator: and
         selected: false
@@ -840,11 +841,11 @@ workflow:
       height: 148
       id: if_gate_result
       position:
-        x: 1900
-        y: 240
+        x: 2092
+        y: 393.26666666666665
       positionAbsolute:
-        x: 1900
-        y: 240
+        x: 2092
+        y: 393.26666666666665
       selected: false
       type: custom
       width: 242
@@ -864,120 +865,45 @@ workflow:
         prompt_template:
         - id: prompt_intent_system
           role: system
-          text: '你是一个消息意图识别助手。分析用户消息，结合对话上下文（可能包含【历史对话】）判断意图并提取关键实体。
-
-
-            消息格式说明：
-
-            - 【历史对话】部分（"用户: ... / 机器人: ..."）仅作为上下文参考，用于理解多轮语境；
-
-            - 只对【当前消息】之后的内容进行意图识别与实体提取，不要对【历史对话】中的内容做识别。
-
-
-            ## 支持的意图
-
-            - CREATE_GROUP: 建群。如"建群""创建一个群""新建一个XX群""帮我建个群拉上张三李四"。
-
-            - ADD_MEMBER: 拉人进群。如"拉群""拉我进群""把XX拉进产品群""把XX加到群里"。
-
-            - ADD_FRIEND: 添加好友。如"加好友""加这个手机号""帮我加个人"。
-
-            - CUSTOMER_SERVICE_QA: 客服问答。如"你们产品怎么收费""怎么退款""物流到哪了""你们公司有什么产品"等咨询业务、产品、服务的问题，或用户主动向机器人咨询的普通提问。
-
-            - COMPANY_INFO_QUERY: 查询公司内部数据。如查员工信息、公司账单、财务数据、人事数据、社保公积金办理进度等。典型话术："查一下张三的工资""看下上个月账单""社保办到哪一步了""我们公司财务数据"。
-
-            - UNKNOWN: 无法识别为以上任何意图。
-
-
-            ## 意图区分（重要）：COMPANY_INFO_QUERY 与 CUSTOMER_SERVICE_QA 严格区分
-
-            - 只有当用户要查询"某个公司的具体内部数据"（员工、账单、财务、人事、社保公积金等）时才判为 COMPANY_INFO_QUERY。
-
-            - 一般咨询产品、价格、政策、业务规则等通用问题（不涉及查询某公司具体数据）判为 CUSTOMER_SERVICE_QA。
-
-            - 消息含"查/查询/查看/进度/账单/工资/社保/公积金/员工/人事/财务"等词且对象是公司内部数据时，优先判为 COMPANY_INFO_QUERY。
-
-
-            ## 实体提取
-
-            针对 ADD_FRIEND：
-
-            - target_phone: 手机号（纯数字）
-
-            - target_person: 姓名/昵称（备注用，不知道留空）
-
-
-            针对 CREATE_GROUP / ADD_MEMBER：
-
-            - target_person: 要拉入群的人（姓名/手机号，多人用中文顿号分隔），说"拉我"则填"我"
-
-            - target_group: 目标群名（不知道的留空）
-
-
-            针对 COMPANY_INFO_QUERY：
-
-            - query_type: 查询类型，取值 employee_info(员工信息)/company_bill(公司账单)/financial_data(财务数据)/hr_data(人事数据)/social_security_progress(社保公积金办理进度)，无法确定留空
-
-            - keyword: 查询关键词（如员工姓名、单号），没有留空
-
-            - period: 查询期间（如"3月""上个月""2025年"），没有留空
-
-            - target_person/target_group/target_phone: 留空
-
-
-            针对 CUSTOMER_SERVICE_QA：不需要提取实体，三个字段全部留空。
-
-
-            ## 多轮补全规则（重要）
-
-            如果【历史对话】中上一轮意图是 CREATE_GROUP/ADD_MEMBER/ADD_FRIEND/COMPANY_INFO_QUERY，且本轮消息补充了上一轮缺失的信息（例如群名、人名、查询类型、关键词、期间），必须结合历史对话中已提取的实体，把缺失字段补全后输出。
-
-            示例：
-
-            历史上一轮：{"intent":"ADD_MEMBER","target_person":"张三","target_group":""}，本轮消息："产品群"
-
-            输出：{"intent":"ADD_MEMBER","target_person":"张三","target_group":"产品群"}
-
-            如果本轮消息仍不足以补全所有缺失字段，缺失字段保持为空。
-
-
-            ## 大类输出
-
-            category 表示消息所属的大类，取值 WORKTOOL_OP / QA / COMPANY_QUERY / UNKNOWN：
-
-            - WORKTOOL_OP: 加好友/拉人/建群等需要执行 WorkTool 操作的消息
-
-            - QA: 客服问答（CUSTOMER_SERVICE_QA）
-
-            - COMPANY_QUERY: 查询公司内部数据（COMPANY_INFO_QUERY）
-
-            - UNKNOWN: 无法识别
-
-            category 必须由 intent 推导：ADD_FRIEND/ADD_MEMBER/CREATE_GROUP → WORKTOOL_OP；CUSTOMER_SERVICE_QA
-            → QA；COMPANY_INFO_QUERY → COMPANY_QUERY；UNKNOWN → UNKNOWN。
-
-
-            ## 输出格式
-
-            只返回一个 JSON 对象，不要输出其他任何文字：
-
-            {"intent": "<意图>", "confidence": 0.0-1.0, "category": "<大类>", "target_person":
-            "", "target_group": "", "target_phone": "", "query_type": "", "keyword":
-            "", "period": ""}
-
-
-            无法识别时返回：
-
-            {"intent": "UNKNOWN", "confidence": 0.0, "category": "UNKNOWN", "target_person":
-            "", "target_group": "", "target_phone": "", "query_type": "", "keyword":
-            "", "period": ""}'
+          text: "你是一个消息意图识别助手。分析用户消息，结合对话上下文（可能包含【历史对话】）判断意图并提取关键实体。\n\n消息格式说明：\n\
+            - 【历史对话】部分（\"用户: ... / 机器人: ...\"）仅作为上下文参考，用于理解多轮语境；\n- 只对【当前消息】之后的内容进行意图识别与实体提取，不要对【历史对话】中的内容做识别。\
+            \ \n\n## 支持的意图\n- CREATE_GROUP: 建群。如\"建群\"\"创建一个群\"\"新建一个XX群\"\"帮我建个群拉上张三李四\"\
+            。\n- ADD_MEMBER: 拉人进群。如\"拉群\"\"拉我进群\"\"把XX拉进产品群\"\"把XX加到群里\"。\n- ADD_FRIEND:\
+            \ 添加好友。如\"加好友\"\"加这个手机号\"\"帮我加个人\"。\n- CUSTOMER_SERVICE_QA: 客服问答。如\"你们产品怎么收费\"\
+            \"怎么退款\"\"物流到哪了\"\"你们公司有什么产品\"等咨询业务、产品、服务、{{#env.WT_INTENT_QA_DESC#}}的问题，或用户主动向机器人咨询的普通提问。\n\
+            - COMPANY_INFO_QUERY: 查询公司内部数据。如查员工信息、公司账单、财务数据、人事数据、社保公积金办理进度等。典型话术：\"\
+            查一下张三的工资\"\"看下上个月账单\"\"社保办到哪一步了\"\"我们公司财务数据\"。\n- UNKNOWN: 无法识别为以上任何意图。\n\
+            \n## 意图区分（重要）：COMPANY_INFO_QUERY 与 CUSTOMER_SERVICE_QA 严格区分\n- 只有当用户要查询\"\
+            某个公司的具体内部数据\"（员工、账单、财务、人事、社保公积金等）时才判为 COMPANY_INFO_QUERY。\n- 一般咨询产品、价格、政策、业务规则、{{#env.WT_INTENT_QA_DESC#}}等通用问题（不涉及查询某公司具体数据）判为\
+            \ CUSTOMER_SERVICE_QA。\n- 消息含\"查/查询/查看/进度/账单/工资/社保/公积金/员工/人事/财务\"等词且对象是公司内部数据时，优先判为\
+            \ COMPANY_INFO_QUERY。\n\n## 实体提取\n针对 ADD_FRIEND：\n- target_phone: 手机号（纯数字）\n\
+            - target_person: 姓名/昵称（备注用，不知道留空）\n\n针对 CREATE_GROUP / ADD_MEMBER：\n-\
+            \ target_person: 要拉入群的人（姓名/手机号，多人用中文顿号分隔），说\"拉我\"则填\"我\"\n- target_group:\
+            \ 目标群名（不知道的留空）\n\n针对 COMPANY_INFO_QUERY：\n- query_type: 查询类型，取值 employee_info(员工信息)/company_bill(公司账单)/financial_data(财务数据)/hr_data(人事数据)/social_security_progress(社保公积金办理进度)，无法确定留空\n\
+            - keyword: 查询关键词（如员工姓名、单号），没有留空\n- period: 查询期间（如\"3月\"\"上个月\"\"2025年\"\
+            ），没有留空\n- target_person/target_group/target_phone: 留空\n\n针对 CUSTOMER_SERVICE_QA：不需要提取实体，三个字段全部留空。\n\
+            \n## 多轮补全规则（重要）\n如果【历史对话】中上一轮意图是 CREATE_GROUP/ADD_MEMBER/ADD_FRIEND/COMPANY_INFO_QUERY，且本轮消息补充了上一轮缺失的信息（例如群名、人名、查询类型、关键词、期间），必须结合历史对话中已提取的实体，把缺失字段补全后输出。\n\
+            示例：\n历史上一轮：{\"intent\":\"ADD_MEMBER\",\"target_person\":\"张三\",\"target_group\"\
+            :\"\"}，本轮消息：\"产品群\"\n输出：{\"intent\":\"ADD_MEMBER\",\"target_person\":\"\
+            张三\",\"target_group\":\"产品群\"}\n如果本轮消息仍不足以补全所有缺失字段，缺失字段保持为空。\n\n## 大类输出\n\
+            category 表示消息所属的大类，取值 WORKTOOL_OP / QA / COMPANY_QUERY / UNKNOWN：\n- WORKTOOL_OP:\
+            \ 加好友/拉人/建群等需要执行 WorkTool 操作的消息\n- QA: 客服问答（CUSTOMER_SERVICE_QA）\n- COMPANY_QUERY:\
+            \ 查询公司内部数据（COMPANY_INFO_QUERY）\n- UNKNOWN: 无法识别\ncategory 必须由 intent 推导：ADD_FRIEND/ADD_MEMBER/CREATE_GROUP\
+            \ → WORKTOOL_OP；CUSTOMER_SERVICE_QA → QA；COMPANY_INFO_QUERY → COMPANY_QUERY；UNKNOWN\
+            \ → UNKNOWN。\n\n## 输出格式\n只返回一个 JSON 对象，不要输出其他任何文字：\n{\"intent\": \"<意图>\"\
+            , \"confidence\": 0.0-1.0, \"category\": \"<大类>\", \"target_person\":\
+            \ \"\", \"target_group\": \"\", \"target_phone\": \"\", \"query_type\"\
+            : \"\", \"keyword\": \"\", \"period\": \"\"}\n\n无法识别时返回：\n{\"intent\"\
+            : \"UNKNOWN\", \"confidence\": 0.0, \"category\": \"UNKNOWN\", \"target_person\"\
+            : \"\", \"target_group\": \"\", \"target_phone\": \"\", \"query_type\"\
+            : \"\", \"keyword\": \"\", \"period\": \"\"}"
         - id: prompt_intent_user
           role: user
           text: '{{#start.recentContext#}}
 
             【当前消息】
 
-            {{#code_validate.receivedName#}}:{{#code_validate.gate_msg#}} '
+            {{#code_validate.receivedName#}}:{{#1787109065018.real_question#}}'
         reasoning_format: tagged
         selected: false
         structured_output: null
@@ -990,11 +916,11 @@ workflow:
       height: 88
       id: llm_intent
       position:
-        x: 2860
-        y: 320
+        x: 2454
+        y: 405.97777777777776
       positionAbsolute:
-        x: 2860
-        y: 320
+        x: 2454
+        y: 405.97777777777776
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1098,11 +1024,11 @@ workflow:
       height: 52
       id: code_parse_intent
       position:
-        x: 3370.838376222611
-        y: 320
+        x: 2796
+        y: 438.64444444444445
       positionAbsolute:
-        x: 3370.838376222611
-        y: 320
+        x: 2796
+        y: 438.64444444444445
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1147,11 +1073,11 @@ workflow:
       height: 268
       id: if_category_route
       position:
-        x: 3820
-        y: 260
+        x: 3138
+        y: 339.31111111111113
       positionAbsolute:
-        x: 3820
-        y: 260
+        x: 3138
+        y: 339.31111111111113
       selected: false
       type: custom
       width: 242
@@ -1251,7 +1177,38 @@ workflow:
           scope: null
           template: null
           type: string
+        - auto_generate: null
+          default: ''
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: 群记忆知识库ID
+            ja_JP: 群记忆知识库ID
+            pt_BR: 群记忆知识库ID
+            zh_Hans: 群记忆知识库ID
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: datasetId
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
         params:
+          datasetId: ''
           receivedName: ''
           recentContext: ''
           spoken: ''
@@ -1260,37 +1217,41 @@ workflow:
         provider_icon:
           background: '#FFEAD5'
           content: 🤖
-        provider_id: 7417f9ed-7029-41e1-afe0-e040c8ed03ab
+        provider_id: e722b129-e800-485f-b9a5-3d269130a59a
         provider_name: 子工作流-QA问答
         provider_show_name: 子工作流-QA问答
         provider_type: workflow
-        selected: false
+        selected: true
         title: 子工作流-QA问答
         tool_configurations: {}
-        tool_description: 回答用户的一般问题, 返回最终回复文本 reply_text。
+        tool_description: QA 客服子工作流 — 接收主工作流传来的当前消息与历史对话，检索静态制度知识库 + 本群群记忆知识库（datasetId
+          可空，为空跳过群聊检索），依据【制度资料】/【群聊记录】/内置知识速查生成极简客服回复，返回回复文本 reply_text。
         tool_label: 子工作流-QA问答
-        tool_name: SERVICE_QA
+        tool_name: SERVICE_QA2
         tool_node_version: '2'
         tool_parameters:
+          datasetId:
+            type: mixed
+            value: '{{#start.datasetId#}}'
           receivedName:
             type: mixed
-            value: '{{#code_validate.receivedName#}}'
+            value: '{{#start.receivedName#}}'
           recentContext:
             type: mixed
             value: '{{#start.recentContext#}}'
           spoken:
             type: mixed
-            value: '{{#code_validate.spoken#}}'
+            value: '{{#1787109065018.real_question#}}'
         type: tool
       height: 52
-      id: '1786955779149'
+      id: '1787037411694'
       position:
-        x: 4140
-        y: 120
+        x: 3500
+        y: 348.60555555555555
       positionAbsolute:
-        x: 4140
-        y: 120
-      selected: false
+        x: 3500
+        y: 348.60555555555555
+      selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -1598,11 +1559,11 @@ workflow:
       height: 52
       id: '1786946212929'
       position:
-        x: 4140
-        y: 260
+        x: 3500
+        y: 480.60555555555555
       positionAbsolute:
-        x: 4140
-        y: 260
+        x: 3500
+        y: 480.60555555555555
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1610,37 +1571,8 @@ workflow:
       width: 242
       zIndex: 0
     - data:
-        code: "import json\nimport re\n\n\ndef main(text: str) -> dict:\n    \"\"\"\
-          \n    解析 Dify LLM 节点返回，提取纯净极简回答。\n    \"\"\"\n    if not text:\n       \
-          \ return {\"answer\": \"\"}\n    \n    raw_content = text\n    \n    # 解析\
-          \ JSON 提取 text 字段\n    try:\n        data = json.loads(text)\n        raw_content\
-          \ = data.get(\"text\") or data.get(\"answer\") or \"\"\n    except json.JSONDecodeError:\n\
-          \        raw_content = text\n    \n    if not raw_content:\n        return\
-          \ {\"answer\": \"\"}\n    \n    # 移除思考标签\n    clean_answer = remove_think_tag(raw_content)\n\
-          \    clean_answer = clean_whitespace(clean_answer)\n    \n    return {\"\
-          answer\": clean_answer}\n\n\ndef remove_think_tag(content: str) -> str:\n\
-          \    \"\"\"移除思考标签\"\"\"\n    patterns = [\n        r\"<think>.*?</think>\"\
-          ,\n        r\"<thinking>.*?</thinking>\",\n        r\"<thought>.*?</thought>\"\
-          ,\n        r\"<reasoning>.*?</reasoning>\",\n        r\"<!--dify-deepseek-reasoning-->.*?</think>\"\
-          ,\n    ]\n    for pattern in patterns:\n        content = re.sub(pattern,\
-          \ \"\", content, flags=re.DOTALL | re.IGNORECASE)\n    content = re.sub(r\"\
-          <think>.*?(?=<think>|$)\", \"\", content, flags=re.DOTALL | re.IGNORECASE)\n\
-          \    content = re.sub(r\"<!--dify-deepseek-reasoning-->\", \"\", content,\
-          \ flags=re.DOTALL | re.IGNORECASE)\n    return content.strip()\n\n\ndef\
-          \ clean_whitespace(content: str) -> str:\n    \"\"\"清洗多余空白\"\"\"\n    content\
-          \ = re.sub(r\"\\n{3,}\", \"\\n\\n\", content)\n    content = re.sub(r\"\
-          [ \\t]+\", \" \", content)\n    lines = [line.strip() for line in content.split(\"\
-          \\n\")]\n    content = \"\\n\".join(lines)\n    return content.strip()\n\
-          \n\ndef main(text: str) -> dict:\n    if not text:\n        return {\"answer\"\
-          : \"\"}\n    try:\n        data = json.loads(text)\n        raw = data.get(\"\
-          text\") or data.get(\"answer\") or \"\"\n        if raw and raw.strip().startswith((\"\
-          {\", \"[\")):\n            try:\n                nested = json.loads(raw)\n\
-          \                raw = nested.get(\"text\") or nested.get(\"answer\") or\
-          \ raw\n            except json.JSONDecodeError:\n                pass\n\
-          \        clean = remove_think_tag(raw)\n        clean = clean_whitespace(clean)\n\
-          \        return {\"answer\": clean}\n    except json.JSONDecodeError:\n\
-          \        clean = remove_think_tag(text)\n        clean = clean_whitespace(clean)\n\
-          \        return {\"answer\": clean}"
+        code: "import re\n\ndef main(text: str) -> dict:\n    if not text:\n     \
+          \   return {\"answer\": \"\"}\n    return {\"answer\": text}"
         code_language: python3
         desc: ''
         isInIteration: false
@@ -1654,18 +1586,18 @@ workflow:
         type: code
         variables:
         - value_selector:
-          - '1786955779149'
-          - text
+          - '1787037411694'
+          - reply_text
           value_type: string
           variable: text
       height: 52
       id: code_parse_qa
       position:
-        x: 4460
-        y: 120
+        x: 3842
+        y: 357.2722222222222
       positionAbsolute:
-        x: 4460
-        y: 120
+        x: 3842
+        y: 357.2722222222222
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1711,11 +1643,11 @@ workflow:
       height: 52
       id: code_fallback
       position:
-        x: 4140
-        y: 640
+        x: 3500
+        y: 139.36111111111111
       positionAbsolute:
-        x: 4140
-        y: 640
+        x: 3500
+        y: 139.36111111111111
       selected: false
       type: custom
       width: 242
@@ -1757,11 +1689,11 @@ workflow:
       height: 52
       id: code_final_text
       position:
-        x: 5401.474143233367
-        y: 400
+        x: 4204
+        y: 403.81111111111113
       positionAbsolute:
-        x: 5401.474143233367
-        y: 400
+        x: 4204
+        y: 403.81111111111113
       selected: false
       type: custom
       width: 242
@@ -1807,11 +1739,11 @@ workflow:
       height: 52
       id: code_send_text
       position:
-        x: 5720
-        y: 400
+        x: 4546
+        y: 412.47777777777776
       positionAbsolute:
-        x: 5720
-        y: 400
+        x: 4546
+        y: 412.47777777777776
       selected: false
       type: custom
       width: 242
@@ -1843,11 +1775,11 @@ workflow:
       height: 95
       id: http_send_text
       position:
-        x: 6040
-        y: 400
+        x: 4888
+        y: 399.64444444444445
       positionAbsolute:
-        x: 6040
-        y: 400
+        x: 4888
+        y: 399.64444444444445
       selected: false
       type: custom
       width: 242
@@ -1865,11 +1797,11 @@ workflow:
       height: 88
       id: end
       position:
-        x: 6360
-        y: 400
+        x: 5230
+        y: 418.97777777777776
       positionAbsolute:
-        x: 6360
-        y: 400
+        x: 5230
+        y: 418.97777777777776
       selected: false
       type: custom
       width: 242
@@ -1887,11 +1819,11 @@ workflow:
       height: 88
       id: end_gate_skip
       position:
-        x: 1900
-        y: 480
+        x: 2478.285714285714
+        y: 612.6055555555556
       positionAbsolute:
-        x: 1900
-        y: 480
+        x: 2478.285714285714
+        y: 612.6055555555556
       selected: false
       type: custom
       width: 242
@@ -1907,7 +1839,7 @@ workflow:
           reply_text:
             children: null
             type: string
-        selected: true
+        selected: false
         title: 解析worktool
         type: code
         variables:
@@ -1919,12 +1851,12 @@ workflow:
       height: 52
       id: '1786699657898'
       position:
-        x: 4460
-        y: 260
+        x: 3842
+        y: 489.27222222222224
       positionAbsolute:
-        x: 4460
-        y: 260
-      selected: true
+        x: 3842
+        y: 489.27222222222224
+      selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -1937,6 +1869,10 @@ workflow:
             value: '# 角色定义
 
               你是企业财务人事智能助理，通过调用内部API工具为用户查询财务和人事数据。
+
+              「QA知识库检索」工具参数 datasetId 必须使用当前会话传入的群知识库ID（不要自己编造或更换）。datasetId=群知识库ID
+              (重要)
+
 
 
               # 核心工作流程（最重要）
@@ -2072,7 +2008,7 @@ workflow:
 
               【当前消息】
 
-              {{#start.receivedName#}}:{{#start.spoken#}}'
+              {{#start.receivedName#}}:{{#1787109065018.real_question#}}'
           tools:
             type: constant
             value:
@@ -2333,6 +2269,33 @@ workflow:
               tool_label: 星期几计算器
               tool_name: weekday
               type: builtin
+            - enabled: true
+              extra:
+                description: 可以查询客服的静态知识库和对应的群知识库中的内容.静态知识库中有关于社保公积金相关政策的信息,动态知识库中有关于群对应公司的服务,备注等信息.
+              parameters:
+                datasetId:
+                  auto: 0
+                  value:
+                    type: mixed
+                    value: '{{#start.datasetId#}}'
+                receivedName:
+                  auto: 1
+                  value: null
+                recentContext:
+                  auto: 1
+                  value: null
+                spoken:
+                  auto: 1
+                  value: null
+              plugin_id: null
+              provider_name: e722b129-e800-485f-b9a5-3d269130a59a
+              provider_show_name: 子工作流-QA问答
+              settings: {}
+              tool_description: QA 客服子工作流 — 接收主工作流传来的当前消息与历史对话，检索静态制度知识库 + 本群群记忆知识库（datasetId
+                可空，为空跳过群聊检索），依据【制度资料】/【群聊记录】/内置知识速查生成极简客服回复，返回回复文本 reply_text。
+              tool_label: 子工作流-QA问答
+              tool_name: SERVICE_QA2
+              type: workflow
         agent_strategy_label: FunctionCalling
         agent_strategy_name: function_calling
         agent_strategy_provider_name: langgenius/agent/agent
@@ -2348,11 +2311,11 @@ workflow:
       height: 210
       id: '1787015957024'
       position:
-        x: 4140
-        y: 392.5423615728953
+        x: 3500
+        y: 612.6055555555556
       positionAbsolute:
-        x: 4140
-        y: 392.5423615728953
+        x: 3500
+        y: 612.6055555555556
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -2411,11 +2374,56 @@ workflow:
       height: 52
       id: '17870177378890'
       position:
-        x: 4460
-        y: 392.5423615728953
+        x: 3842
+        y: 726.6055555555556
       positionAbsolute:
-        x: 4460
-        y: 392.5423615728953
+        x: 3842
+        y: 726.6055555555556
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "import json\nimport re\n\ndef main(text: str) -> dict:\n    # 方法1：先提取\
+          \ </think> 之后的内容\n    match = re.search(r'</think>\\s*(\\{.*\\})', text,\
+          \ re.DOTALL)\n    if match:\n        try:\n            return json.loads(match.group(1))\n\
+          \        except:\n            return {\"real_question\": \"\", \"should_reply\"\
+          : False, \"reason\": \"解析失败\"}\n    \n    # 方法2：直接找最外层的 JSON（非贪婪匹配，但要注意嵌套）\n\
+          \    match = re.search(r'\\{[^{}]*\\}', text)\n    if match:\n        try:\n\
+          \            return json.loads(match.group())\n        except:\n       \
+          \     return {\"real_question\": \"\", \"should_reply\": False, \"reason\"\
+          : \"解析失败\"}\n    \n    return {\"real_question\": \"\", \"should_reply\"\
+          : False, \"reason\": \"未找到JSON\"}"
+        code_language: python3
+        outputs:
+          real_question:
+            children: null
+            type: string
+          reason:
+            children: null
+            type: string
+          should_reply:
+            children: null
+            type: boolean
+        selected: false
+        title: 解析用户真实问题
+        type: code
+        variables:
+        - value_selector:
+          - llm_gate
+          - text
+          value_type: string
+          variable: text
+      height: 52
+      id: '1787109065018'
+      position:
+        x: 1750
+        y: 432.59999999999997
+      positionAbsolute:
+        x: 1750
+        y: 432.59999999999997
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -2423,7 +2431,7 @@ workflow:
       width: 242
       zIndex: 0
     viewport:
-      x: -2942.4015712669334
-      y: 104.39272055654169
-      zoom: 0.8512033203539804
+      x: -273.32296484550443
+      y: 177.0909158304931
+      zoom: 0.5164451404923566
   rag_pipeline_variables: []

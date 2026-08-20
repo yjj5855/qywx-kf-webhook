@@ -4,6 +4,14 @@
 
 ## [开发中]
 
+### 知识库设置批量更新（换 Embedding 模型 / 开自动摘要）
+- 新增 src/update_kb_settings.py：Dify 知识库在创建时固化当时的 Embedding 模型，改系统默认模型不影响已有库；脚本通过控制台 API 逐库 PATCH 更新 embedding_model/embedding_model_provider（触发 Dify 后台自动重嵌入）并写入 summary_index_setting（enable + 摘要 LLM + 自定义提示词，默认"描述解决的问题,以中文生成,去除 think 内容"），重嵌入完成后自动调用 generate-summary 给已有文档补生成摘要
+- 认证支持 --cookie（浏览器会话）或 --email/--password（控制台登录）；--dry-run 预览；--only-embedding / --only-summary 单独执行；--dataset-ids 追加群绑定表外的知识库（如制度库）
+- dry-run 改为服务端 API 读取当前配置（embedding 模型 / 索引方式 / 摘要设置），无需控制台会话即可预览现状
+- 新增 --skip-summary-trigger：先批量 PATCH 全部知识库配置（换模型+摘要设置），等重嵌入完成后再用 --only-summary 统一触发摘要生成，避免逐库等待
+- 摘要默认提示词改为"用中文描述这段内容解决的问题，要求简洁、一两句话概括，不要使用编号列表或要点，不要输出思考过程、推理内容或 think 标签"（适配 qwen3.7-plus 摘要模型，避免编号要点式冗长输出）
+- README 增加"更换知识库 Embedding 模型 / 开启自动摘要（批量）"一节
+
 ### 群公司档案（客服手写公司描述 → 群知识库）
 - 新增 src/company_profile.py：构建「群-公司档案」文本（群信息 + 每公司一块，块首为完整自然语言句，适配向量索引 high_quality / semantic_search）并同步进群知识库（文档名固定 `群档案_{group_id}`，先删同名旧文档再重建，幂等；档案文件被清空 = 从知识库移除）
 - 新增 src/sync_company_profiles.py：`--init` 为已绑定公司ID且缺档案的群生成模板（公司名从群名启发式预填）；默认同步已有档案文件到群知识库；`--force` 覆盖模板 / `--dry-run` 预览 / `--prune` 清理档案文件已删除的残留文档

@@ -35,6 +35,7 @@ src/
   init_datasets.py     # 批量创建群专属知识库
   sync_kb_ids_to_csv.py# 把知识库/工作流 ID 回填到 CSV
   sync_company_profiles.py  # 群公司档案：生成客服模板 / 同步到群知识库 / 清理
+  update_kb_settings.py     # 批量更新现有知识库：换 Embedding 模型 / 开自动摘要
 dify/                 # Dify 工作流 YAML
 docs/                 # 文档、客户群 CSV、执行文档
 data/                 # SQLite 数据库（gitignore）
@@ -180,6 +181,7 @@ curl -s -X POST "http://localhost:8000/callback?robotId=wtgxpt9udc4pb4hgj0rnn139
 | `init_datasets.py` | 批量创建群专属知识库 | `python -m src.init_datasets [--with-company]` |
 | `sync_kb_ids_to_csv.py` | 把知识库/工作流 ID 回填到 CSV | `python -m src.sync_kb_ids_to_csv [csv路径]` |
 | `sync_company_profiles.py` | 群公司档案：生成客服模板 / 同步到群知识库 / 清理残留 | `python -m src.sync_company_profiles [--init] [--force] [--dry-run] [--prune]` |
+| `update_kb_settings.py` | 批量更新现有知识库：换 Embedding 模型 / 开自动摘要（含自定义摘要提示词） | `APP_ENV=prod python -m src.update_kb_settings --embedding-model <模型> --embedding-provider <供应商> --summary-model <LLM> --summary-provider <LLM供应商> --summary-prompt "<提示词>" --cookie "session=..."` |
 
 生产环境执行脚本需带 `APP_ENV=prod`：
 
@@ -210,6 +212,34 @@ python -m src.sync_company_profiles
 - 档案文本遵循向量索引设计：每公司块首句为完整自然语言句、块间空行分隔、头部一句话列全公司名；
 - 群绑定变更（`POST /api/bindings`）时会自动尝试同步该群档案（缺档案/未绑定知识库则跳过）；
 - 档案文件存在但被清空 = 从知识库移除该档案；文件被删除后需跑 `--prune` 清理残留文档。
+
+## 更换知识库 Embedding 模型 / 开启自动摘要（批量）
+
+Dify 知识库在**创建时**固化当时的 Embedding 模型，改系统默认模型不影响已有库。
+批量更新已有知识库（群知识库 + 可加制度库）：
+
+```bash
+# 1. 预览将更新的知识库（不实际调用）
+APP_ENV=prod python -m src.update_kb_settings --dry-run \
+  --embedding-model <新模型名> --embedding-provider <新供应商> \
+  --summary-model <摘要LLM模型名> --summary-provider <LLM供应商> \
+  --summary-prompt "用中文描述这段内容解决的问题，要求简洁、一两句话概括，不要使用编号列表或要点，不要输出思考过程、推理内容或 think 标签。" \
+  --cookie "session=..."
+
+# 2. 正式执行：逐库 PATCH 换模型（触发后台重嵌入）+ 开摘要 + 等重嵌入完成后触发摘要生成
+APP_ENV=prod python -m src.update_kb_settings \
+  --embedding-model <新模型名> --embedding-provider <新供应商> \
+  --summary-model <摘要LLM模型名> --summary-provider <LLM供应商> \
+  --summary-prompt "用中文描述这段内容解决的问题，要求简洁、一两句话概括，不要使用编号列表或要点，不要输出思考过程、推理内容或 think 标签。" \
+  --cookie "session=..."
+```
+
+说明：
+- **认证**：控制台 API 需登录会话，`--cookie`（浏览器 F12 复制 `session=...`）或 `--email/--password`（脚本自动登录）二选一；
+- `--dataset-ids` 可追加不在群绑定表里的知识库（如制度库）；`--only-embedding` / `--only-summary` 可只做其中一项；
+- 改 Embedding 模型会触发 Dify 后台**自动重新嵌入**该库全部文档（异步、无进度条，量大需等待）；
+- 摘要设置只对新文档生效，脚本会在重嵌入完成后自动调用 generate-summary 给**已有文档**补生成摘要（每段生成，耗时长）；
+- 重嵌入/摘要生成期间检索可能不稳定，属正常现象。
 
 ## 日志
 
