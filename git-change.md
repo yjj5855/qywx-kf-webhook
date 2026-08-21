@@ -4,6 +4,10 @@
 
 ## [开发中]
 
+### 客服主流程（意图提示词）
+- 调整 意图识别与门控提示词中硬编码的操作、咨询、公司查询描述改为引用环境变量（WT_INTENT_WORKTOOL_DESC / WT_INTENT_QA_DESC / WT_COMPANY_OP_DESC）
+- 新增 公司 API 支持操作范围说明，明确客服咨询走 QA 检索、WorkTool 操作不属本助理范围
+
 ### 知识库设置批量更新（换 Embedding 模型 / 开自动摘要）
 - 新增 src/update_kb_settings.py：Dify 知识库在创建时固化当时的 Embedding 模型，改系统默认模型不影响已有库；脚本通过控制台 API 逐库 PATCH 更新 embedding_model/embedding_model_provider（触发 Dify 后台自动重嵌入）并写入 summary_index_setting（enable + 摘要 LLM + 自定义提示词，默认"描述解决的问题,以中文生成,去除 think 内容"），重嵌入完成后自动调用 generate-summary 给已有文档补生成摘要
 - 认证支持 --cookie（浏览器会话）或 --email/--password（控制台登录）；--dry-run 预览；--only-embedding / --only-summary 单独执行；--dataset-ids 追加群绑定表外的知识库（如制度库）

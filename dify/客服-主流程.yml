@@ -775,7 +775,7 @@ workflow:
 
             ## 回复判定规则
 
-            - should_reply = true：意图为{{#env.WT_INTENT_WORKTOOL_DESC#}}、查询公司信息（员工/账单/财务/人事/社保公积金等）、客服咨询（{{#env.WT_INTENT_QA_DESC#}}）。
+            - should_reply = true：意图为{{#env.WT_INTENT_WORKTOOL_DESC#}}、查询公司信息（{{#env.WT_COMPANY_OP_DESC#}}等）、客服咨询（{{#env.WT_INTENT_QA_DESC#}}）。
 
             - should_reply = false：成员间闲聊、互相对话、与机器人无关。
 
@@ -867,14 +867,14 @@ workflow:
           role: system
           text: "你是一个消息意图识别助手。分析用户消息，结合对话上下文（可能包含【历史对话】）判断意图并提取关键实体。\n\n消息格式说明：\n\
             - 【历史对话】部分（\"用户: ... / 机器人: ...\"）仅作为上下文参考，用于理解多轮语境；\n- 只对【当前消息】之后的内容进行意图识别与实体提取，不要对【历史对话】中的内容做识别。\
-            \ \n\n## 支持的意图\n- CREATE_GROUP: 建群。如\"建群\"\"创建一个群\"\"新建一个XX群\"\"帮我建个群拉上张三李四\"\
-            。\n- ADD_MEMBER: 拉人进群。如\"拉群\"\"拉我进群\"\"把XX拉进产品群\"\"把XX加到群里\"。\n- ADD_FRIEND:\
-            \ 添加好友。如\"加好友\"\"加这个手机号\"\"帮我加个人\"。\n- CUSTOMER_SERVICE_QA: 客服问答。如\"你们产品怎么收费\"\
+            \ \n\n## 支持的意图\n- CREATE_GROUP: 建群（WorkTool 操作：{{#env.WT_INTENT_WORKTOOL_DESC#}}）。如\"建群\"\"创建一个群\"\"新建一个XX群\"\"帮我建个群拉上张三李四\"\
+            。\n- ADD_MEMBER: 拉人进群（WorkTool 操作：{{#env.WT_INTENT_WORKTOOL_DESC#}}）。如\"拉群\"\"拉我进群\"\"把XX拉进产品群\"\"把XX加到群里\"。\n- ADD_FRIEND:\
+            \ 添加好友（WorkTool 操作：{{#env.WT_INTENT_WORKTOOL_DESC#}}）。如\"加好友\"\"加这个手机号\"\"帮我加个人\"。\n- CUSTOMER_SERVICE_QA: 客服问答。如\"你们产品怎么收费\"\
             \"怎么退款\"\"物流到哪了\"\"你们公司有什么产品\"等咨询业务、产品、服务、{{#env.WT_INTENT_QA_DESC#}}的问题，或用户主动向机器人咨询的普通提问。\n\
-            - COMPANY_INFO_QUERY: 查询公司内部数据。如查员工信息、公司账单、财务数据、人事数据、社保公积金办理进度等。典型话术：\"\
+            - COMPANY_INFO_QUERY: 查询公司内部数据（支持查询：{{#env.WT_COMPANY_OP_DESC#}}等）。如查员工信息、公司账单、财务数据、人事数据、社保公积金办理进度等。典型话术：\"\
             查一下张三的工资\"\"看下上个月账单\"\"社保办到哪一步了\"\"我们公司财务数据\"。\n- UNKNOWN: 无法识别为以上任何意图。\n\
             \n## 意图区分（重要）：COMPANY_INFO_QUERY 与 CUSTOMER_SERVICE_QA 严格区分\n- 只有当用户要查询\"\
-            某个公司的具体内部数据\"（员工、账单、财务、人事、社保公积金等）时才判为 COMPANY_INFO_QUERY。\n- 一般咨询产品、价格、政策、业务规则、{{#env.WT_INTENT_QA_DESC#}}等通用问题（不涉及查询某公司具体数据）判为\
+            某个公司的具体内部数据\"（{{#env.WT_COMPANY_OP_DESC#}}等）时才判为 COMPANY_INFO_QUERY。\n- 一般咨询产品、价格、政策、业务规则、{{#env.WT_INTENT_QA_DESC#}}等通用问题（不涉及查询某公司具体数据）判为\
             \ CUSTOMER_SERVICE_QA。\n- 消息含\"查/查询/查看/进度/账单/工资/社保/公积金/员工/人事/财务\"等词且对象是公司内部数据时，优先判为\
             \ COMPANY_INFO_QUERY。\n\n## 实体提取\n针对 ADD_FRIEND：\n- target_phone: 手机号（纯数字）\n\
             - target_person: 姓名/昵称（备注用，不知道留空）\n\n针对 CREATE_GROUP / ADD_MEMBER：\n-\
@@ -887,7 +887,7 @@ workflow:
             :\"\"}，本轮消息：\"产品群\"\n输出：{\"intent\":\"ADD_MEMBER\",\"target_person\":\"\
             张三\",\"target_group\":\"产品群\"}\n如果本轮消息仍不足以补全所有缺失字段，缺失字段保持为空。\n\n## 大类输出\n\
             category 表示消息所属的大类，取值 WORKTOOL_OP / QA / COMPANY_QUERY / UNKNOWN：\n- WORKTOOL_OP:\
-            \ 加好友/拉人/建群等需要执行 WorkTool 操作的消息\n- QA: 客服问答（CUSTOMER_SERVICE_QA）\n- COMPANY_QUERY:\
+            \ {{#env.WT_INTENT_WORKTOOL_DESC#}}等需要执行 WorkTool 操作的消息\n- QA: 客服问答（CUSTOMER_SERVICE_QA）\n- COMPANY_QUERY:\
             \ 查询公司内部数据（COMPANY_INFO_QUERY）\n- UNKNOWN: 无法识别\ncategory 必须由 intent 推导：ADD_FRIEND/ADD_MEMBER/CREATE_GROUP\
             \ → WORKTOOL_OP；CUSTOMER_SERVICE_QA → QA；COMPANY_INFO_QUERY → COMPANY_QUERY；UNKNOWN\
             \ → UNKNOWN。\n\n## 输出格式\n只返回一个 JSON 对象，不要输出其他任何文字：\n{\"intent\": \"<意图>\"\
@@ -1874,6 +1874,16 @@ workflow:
               (重要)
 
 
+
+              # 公司API支持的操作
+
+              公司 API 当前支持以下操作大类：{{#env.WT_COMPANY_OP_DESC#}}。
+
+              用户查询应属于上述操作大类（具体调用流程见下方「工具选择速查表」）；若明显不在支持范围内，明确告知暂不支持，不要编造数据。
+
+              若用户问题属于客服咨询（如{{#env.WT_INTENT_QA_DESC#}}等），请调用「QA知识库检索」工具（子工作流-QA问答）检索知识库后作答。
+
+              建群、拉人、加好友等 WorkTool 操作（{{#env.WT_INTENT_WORKTOOL_DESC#}}）不属于本助理处理范围，不要尝试执行。
 
               # 核心工作流程（最重要）
 
