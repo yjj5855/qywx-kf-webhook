@@ -177,6 +177,7 @@ curl -s -X POST "http://localhost:8000/callback?robotId=wtgxpt9udc4pb4hgj0rnn139
 | 脚本 | 说明 | 用法 |
 |------|------|------|
 | `init_bindings.py` | 从 CSV 初始化群绑定 | `python -m src.init_bindings [csv路径]` |
+| `update_company_ids.py` | 仅同步公司ID列到库（不触碰群名/状态/知识库等其他列） | `python -m src.update_company_ids [csv路径]` |
 | `init_kb_bindings.py` | 按已有 `群记忆_*` 知识库回填 dataset id | `python -m src.init_kb_bindings [csv路径]` |
 | `init_datasets.py` | 批量创建群专属知识库 | `python -m src.init_datasets [--with-company]` |
 | `sync_kb_ids_to_csv.py` | 把知识库/工作流 ID 回填到 CSV | `python -m src.sync_kb_ids_to_csv [csv路径]` |

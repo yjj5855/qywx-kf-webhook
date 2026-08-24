@@ -180,6 +180,21 @@ class BindingStore:
             )
             conn.commit()
 
+    def update_company_ids(self, platform: str, group_id: str, company_ids: str) -> bool:
+        """仅更新公司ID列，不触碰 group_name / status / 知识库 / 工作流等其他字段。
+
+        供最小更新文件（仅 群ID、公司ID 两列）使用，返回是否命中行。
+        """
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        with sqlite3.connect(self._db_path) as conn:
+            cur = conn.execute(
+                "UPDATE group_bindings SET company_ids = ?, updated_at = ? "
+                "WHERE platform = ? AND group_id = ?",
+                (company_ids, now, platform, group_id),
+            )
+            conn.commit()
+        return cur.rowcount > 0
+
     def update_memory_dataset(self, platform: str, group_id: str, dataset_id: str) -> None:
         """回填群专属知识库 ID。"""
         with sqlite3.connect(self._db_path) as conn:

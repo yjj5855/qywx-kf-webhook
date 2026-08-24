@@ -4,6 +4,13 @@
 
 ## [开发中]
 
+### 群公司ID同步（最小更新脚本）
+- 新增 src/update_company_ids.py：读取最小 CSV（群ID、公司ID 两列）批量同步公司ID到 group_bindings.company_ids，不触碰群名/状态/知识库/工作流等其他列；空公司ID行跳过避免误清空库内已有值；库中不存在的群跳过并告警、不新增记录；多公司ID任意分隔符统一归一化为顿号
+- 新增 src/binding.py BindingStore.update_company_ids 方法：仅更新 company_ids 与 updated_at 两列（返回是否命中行），供最小更新文件使用
+- 新增 docs/客户群列表_公司ID更新.csv：仅含 群ID、公司ID 两列的最小更新源文件
+- 回填 docs/客户群列表_去重_公司ID回填.csv 中 411 行群的 公司ID 数据
+- README 增加 update_company_ids 脚本用法说明
+
 ### 客服主流程（意图提示词）
 - 调整 意图识别与门控提示词中硬编码的操作、咨询、公司查询描述改为引用环境变量（WT_INTENT_WORKTOOL_DESC / WT_INTENT_QA_DESC / WT_COMPANY_OP_DESC）
 - 新增 公司 API 支持操作范围说明，明确客服咨询走 QA 检索、WorkTool 操作不属本助理范围
