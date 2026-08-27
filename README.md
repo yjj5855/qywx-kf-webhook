@@ -16,10 +16,11 @@
 src/
   main.py              # FastAPI 入口（/callback、/health）
   config.py            # 配置加载（WT_* 前缀，按 APP_ENV 选 .env 文件）
-  handler.py           # 消息处理器（Dify 主工作流 + Echo 兜底）
+  handler.py           # 消息处理器（Dify 工作流 + Echo 兜底，按群绑定取工作流）
   dify_client.py       # Dify 工作流客户端
   client.py            # WorkTool API 客户端（发送消息）
   binding.py           # 群绑定存储（群 ↔ 公司ID / 知识库 / 工作流）
+  workflow_apps.py     # workflow 配置表存储（工作流应用 ID ↔ API Key）
   memory.py            # 对话记忆存储
   session_store.py     # 会话 ID 存储
   company.py           # 公司信息查询
@@ -28,6 +29,7 @@ src/
   exporter.py          # 知识库增量导出定时任务
   models.py            # 数据模型
   api_bindings.py      # 群绑定管理接口
+  api_workflows.py     # workflow 配置表接口（工作流应用注册）
   api_memory.py        # 对话记忆 / 知识库导出接口
   api_yuque.py         # 语雀外部知识库检索接口（Dify 外部知识库胶水服务）
   init_bindings.py     # 从 CSV 初始化群绑定
@@ -36,7 +38,7 @@ src/
   sync_kb_ids_to_csv.py# 把知识库/工作流 ID 回填到 CSV
   sync_company_profiles.py  # 群公司档案：生成客服模板 / 同步到群知识库 / 清理
   update_kb_settings.py     # 批量更新现有知识库：换 Embedding 模型 / 开自动摘要
-dify/                 # Dify 工作流 YAML
+dify/                 # Dify 工作流 YAML（客服-主流程 / 开户办理-主流程 / 子工作流-QA问答 / 子工作流-WORKTOOL_OP）
 docs/                 # 文档、客户群 CSV、执行文档
 data/                 # SQLite 数据库（gitignore）
 logs/                 # 运行日志（gitignore）
@@ -112,7 +114,6 @@ curl http://localhost:8000/health
 | `WT_API_BASE_URL` | WorkTool API 地址 | `https://api.worktool.ymdyes.cn` |
 | `WT_DEBOUNCE_SECONDS` | 回调防抖窗口（秒）：同一会话窗口内多条消息合并为一次工作流调用，全部消息仍入库 | `1.0` |
 | `WT_DIFY_BASE_URL` | Dify 服务地址 | — |
-| `WT_DIFY_WORKFLOW_KEY` | 主工作流 API Key | — |
 | `WT_DIFY_TIMEOUT` | 工作流调用超时（秒） | `30` |
 | `WT_DIFY_DB_PATH` | SQLite 存储路径 | `./data/app.db` |
 | `WT_COMPANY_API_BASE_URL` | 公司数据网关地址 | — |
@@ -139,6 +140,9 @@ curl http://localhost:8000/health
 | GET | `/api/bindings/query` | 查询单个绑定（`platform`、`group_id`） |
 | POST | `/api/bindings` | 新增/更新绑定 |
 | DELETE | `/api/bindings` | 删除绑定（软删除） |
+| GET | `/api/workflows` | 列出 workflow 配置表（工作流应用注册，含 app_id/name/api_key） |
+| POST | `/api/workflows` | 新增/更新工作流应用注册（`app_id`、`name`、`api_key`） |
+| DELETE | `/api/workflows` | 删除工作流应用注册（`app_id`） |
 | POST | `/api/messages/record` | 记录对话记忆 |
 | GET | `/api/messages/history` | 查询对话历史（`session_id`） |
 | POST | `/api/messages/export` | 导出单个群对话到知识库（`session_id` + `since_id` 增量） |
@@ -172,11 +176,39 @@ curl -s -X POST "http://localhost:8000/callback?robotId=wtgxpt9udc4pb4hgj0rnn139
   }'
 ```
 
+## 按群绑定 Dify 工作流（客服-主流程 / 开户办理-主流程）
+
+回调服务按 **群绑定表 `group_bindings.workflow_app_id`** 决定调用哪个 Dify 工作流应用：
+**一个群只绑定一个 workflow appid**（存工作流应用 ID），API Key 存在 **workflow 配置表
+`workflow_apps`**（按 app_id 查 key，多个群可共用同一工作流应用）。**配置文件不再放
+工作流 API Key**；群未绑定或应用未注册时本次不调用工作流（不回复）。
+
+```mermaid
+flowchart LR
+    A[群消息回调] --> B[handler]
+    B --> C{群绑定 workflow_app_id?}
+    C -- 空/未注册 --> D[不调用工作流<br/>仅记录日志]
+    C -- app_id --> E[workflow 配置表查 key]
+    E --> F[调用对应工作流<br/>客服-主流程 / 开户办理-主流程]
+```
+
+- **workflow 配置表（`workflow_apps`）**：`app_id`（= 群绑定里的 workflow_app_id，Dify 应用 ID）、
+  `name`（应用名备注，如 客服-主流程 / 开户办理-主流程）、`api_key`（该应用 API Key，
+  形如 `app-xxx`，Dify 应用「API 访问」页生成）。
+  配置：`POST /api/workflows {"app_id": "xxx", "name": "开户办理-主流程", "api_key": "app-xxxx"}`
+- **开户办理-主流程**（`dify/开户办理-主流程.yml`）：接收与客服-主流程一致的参数
+  （spoken/receivedName/roomType/atMe/textType/recentContext/companyIds/datasetId 等），
+  门控 → 开户意图识别 → 多轮收集开户必填信息（企业名称/统一社会信用代码/法定代表人/
+  经办人电话/开户类型）→ 信息齐全后通过 WorkTool API（type=218）发送开户材料文件，
+  并内置回答开户流程/材料咨询；回复统一经 WorkTool 发送。
+- 群绑定配置方式：① 客户群 CSV 的「工作流AppID」列（`python -m src.init_bindings` 回填，CSV 空值保留库内已有值）；
+  ② `POST /api/bindings` 直接配置；③ 存量单群可调 `BindingStore.update_workflow_app`。
+
 ## 运维脚本
 
 | 脚本 | 说明 | 用法 |
 |------|------|------|
-| `init_bindings.py` | 从 CSV 初始化群绑定 | `python -m src.init_bindings [csv路径]` |
+| `init_bindings.py` | 从 CSV 初始化群绑定（含「工作流AppID」列回填 workflow_app_id，CSV 空值保留库内已有值） | `python -m src.init_bindings [csv路径]` |
 | `update_company_ids.py` | 仅同步公司ID列到库（不触碰群名/状态/知识库等其他列） | `python -m src.update_company_ids [csv路径]` |
 | `init_kb_bindings.py` | 按已有 `群记忆_*` 知识库回填 dataset id | `python -m src.init_kb_bindings [csv路径]` |
 | `init_datasets.py` | 批量创建群专属知识库 | `python -m src.init_datasets [--with-company]` |

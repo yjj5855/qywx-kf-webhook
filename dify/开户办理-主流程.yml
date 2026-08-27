@@ -1,0 +1,1951 @@
+app:
+  description: 开户办理主流程 — 独立的企业开户办理客服工作流。接收与「客服-主流程」一致的 WorkTool 回调参数，
+    经门控与开户意图识别后，多轮收集企业开户必填信息（企业名称/统一社会信用代码/法定代表人/经办人电话/开户类型），
+    信息齐全后通过 WorkTool API（type=218）发送开户材料文件，并回答开户流程/材料咨询；回复统一经 WorkTool 发送。
+    适用于在群绑定表 group_bindings.workflow_app_id 中配置了本工作流的群（其余群仍走「客服-主流程」）。
+  icon: 🏦
+  icon_background: '#E7F3FF'
+  icon_type: emoji
+  mode: workflow
+  name: 开户办理-主流程
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/deepseek:0.0.20@850efe73fb62bbe7ab2229116086596596297a77174fb86f73e1363b99a24116
+    version: null
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: WorkTool API 基础地址
+    id: env_api_base_url
+    name: WT_API_BASE_URL
+    selector:
+    - env
+    - WT_API_BASE_URL
+    value: https://api.worktool.ymdyes.cn
+    value_type: string
+  - description: 机器人 ID
+    id: env_robot_id
+    name: WT_ROBOT_ID
+    selector:
+    - env
+    - WT_ROBOT_ID
+    value: wtgxpt9udc4pb4hgj0rnn139gfwcc6ls
+    value_type: string
+  - description: 开户材料文件的网络地址（type=218 推送任意图片/音视频/文件 使用；留空则只回复文字不发文件）
+    id: env_open_account_file_url
+    name: WT_OPEN_ACCOUNT_FILE_URL
+    selector:
+    - env
+    - WT_OPEN_ACCOUNT_FILE_URL
+    value: ''
+    value_type: string
+  - description: 开户材料文件名（含后缀，如 开户申请材料.zip）
+    id: env_open_account_file_name
+    name: WT_OPEN_ACCOUNT_FILE_NAME
+    selector:
+    - env
+    - WT_OPEN_ACCOUNT_FILE_NAME
+    value: 开户申请材料.zip
+    value_type: string
+  - description: 意图识别置信度阈值
+    id: env_confidence_threshold
+    name: CONFIDENCE_THRESHOLD
+    selector:
+    - env
+    - CONFIDENCE_THRESHOLD
+    value: 0.7
+    value_type: float
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: 开户办理主流程已就绪。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: e_start_validate
+      selected: false
+      source: start
+      sourceHandle: source
+      target: code_validate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_validate_unsupported
+      selected: false
+      source: code_validate
+      sourceHandle: source
+      target: if_unsupported
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_unsupported_true_fallback
+      selected: false
+      source: if_unsupported
+      sourceHandle: 'true'
+      target: code_fallback
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: e_unsupported_false_gate
+      selected: false
+      source: if_unsupported
+      sourceHandle: 'false'
+      target: if_gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: e_gate_true_llm
+      selected: false
+      source: if_gate
+      sourceHandle: 'true'
+      target: llm_gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: e_gate_false_intent
+      selected: false
+      source: if_gate
+      sourceHandle: 'false'
+      target: llm_intent
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: e_gate_parse
+      selected: false
+      source: llm_gate
+      sourceHandle: source
+      target: code_parse_gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_parse_gate_result
+      selected: false
+      source: code_parse_gate
+      sourceHandle: source
+      target: if_gate_result
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: e_result_true_intent
+      selected: false
+      source: if_gate_result
+      sourceHandle: 'true'
+      target: llm_intent
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: end
+      id: e_result_false_skip
+      selected: false
+      source: if_gate_result
+      sourceHandle: 'false'
+      target: end_skip
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: e_intent_parse
+      selected: false
+      source: llm_intent
+      sourceHandle: source
+      target: code_parse_intent
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_parseintent_route
+      selected: false
+      source: code_parse_intent
+      sourceHandle: source
+      target: if_open_intent
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: e_route_open_account
+      selected: false
+      source: if_open_intent
+      sourceHandle: open_account
+      target: llm_collect
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_route_qa_guide
+      selected: false
+      source: if_open_intent
+      sourceHandle: qa_guide
+      target: code_qa_guide
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_route_other
+      selected: false
+      source: if_open_intent
+      sourceHandle: other
+      target: code_guide
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_route_false_fallback
+      selected: false
+      source: if_open_intent
+      sourceHandle: 'false'
+      target: code_fallback
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: e_collect_parse
+      selected: false
+      source: llm_collect
+      sourceHandle: source
+      target: code_parse_collect
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_parse_all_collected
+      selected: false
+      source: code_parse_collect
+      sourceHandle: source
+      target: if_all_collected
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_all_true_build_file
+      selected: false
+      source: if_all_collected
+      sourceHandle: 'true'
+      target: code_build_file
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_all_false_pending
+      selected: false
+      source: if_all_collected
+      sourceHandle: 'false'
+      target: code_pending
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: e_buildfile_needapi
+      selected: false
+      source: code_build_file
+      sourceHandle: source
+      target: if_need_api
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: e_needapi_true_http
+      selected: false
+      source: if_need_api
+      sourceHandle: 'true'
+      target: http_send_file
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_needapi_false_final
+      selected: false
+      source: if_need_api
+      sourceHandle: 'false'
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: e_http_final
+      selected: false
+      source: http_send_file
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_pending_final
+      selected: false
+      source: code_pending
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_qaguide_final
+      selected: false
+      source: code_qa_guide
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_guide_final
+      selected: false
+      source: code_guide
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_fallback_final
+      selected: false
+      source: code_fallback
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_final_sendtext
+      selected: false
+      source: code_final_text
+      sourceHandle: source
+      target: code_send_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: e_sendtext_http
+      selected: false
+      source: code_send_text
+      sourceHandle: source
+      target: http_send_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: end
+      id: e_http_end
+      selected: false
+      source: http_send_text
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: Webhook 回调入口
+        type: start
+        variables:
+        - label: spoken
+          max_length: 256
+          required: true
+          type: text-input
+          variable: spoken
+        - label: rawSpoken
+          max_length: 256
+          required: false
+          type: text-input
+          variable: rawSpoken
+        - hide: false
+          label: receivedName
+          max_length: 256
+          required: false
+          type: text-input
+          variable: receivedName
+        - label: groupName
+          max_length: 256
+          required: false
+          type: text-input
+          variable: groupName
+        - label: groupRemark
+          max_length: 256
+          required: false
+          type: text-input
+          variable: groupRemark
+        - label: roomType
+          max_length: 10
+          required: false
+          type: number
+          variable: roomType
+        - label: atMe
+          max_length: 20
+          required: false
+          type: checkbox
+          variable: atMe
+        - label: textType
+          max_length: 10
+          required: false
+          type: number
+          variable: textType
+        - label: fileBase64
+          max_length: 256
+          required: false
+          type: text-input
+          variable: fileBase64
+        - label: messageId
+          max_length: 128
+          required: false
+          type: text-input
+          variable: messageId
+        - label: 历史对话
+          max_length: 25600
+          required: false
+          type: paragraph
+          variable: recentContext
+        - default: ''
+          hint: ''
+          label: 公司 id (多家公司以、或;分割)
+          max_length: 256
+          options: []
+          placeholder: ''
+          required: false
+          type: text-input
+          variable: companyIds
+        - default: ''
+          hint: ''
+          label: 群知识库id
+          max_length: 256
+          options: []
+          placeholder: ''
+          required: false
+          type: text-input
+          variable: datasetId
+      height: 421
+      id: start
+      position:
+        x: 0
+        y: 0
+      positionAbsolute:
+        x: 0
+        y: 0
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          def main(
+              spoken: str,
+              rawSpoken: str,
+              receivedName: str,
+              groupName: str,
+              groupRemark: str,
+              roomType: int,
+              atMe,
+              textType: int,
+              fileBase64: str,
+              messageId: str,
+          ):
+              # 是否群聊 (roomType 1=外部群 3=内部群)
+              is_group = roomType in (1, 3)
+
+              # 是否被 @
+              at_me = str(atMe).lower() in ("true", "1", "yes")
+
+              # 是否是图片消息
+              is_image = textType == 2
+
+              # 不支持的媒体类型：0=未知 3=语音 5=视频 7=小程序 8=链接 9=文件
+              # （1=文本 2=图片 13=合并记录 15=带回复文本 视为可处理）
+              is_unsupported = textType not in (1, 2, 13, 15)
+
+              # 会话标识：群聊用群备注/群名，单聊用联系人名称
+              chat_id = (groupRemark or groupName) if is_group else receivedName
+              session_id = f"{roomType}:{chat_id}"
+
+              # 门控消息文本：图片时用占位
+              gate_msg = spoken or ("[图片]" if is_image else "")
+
+              # 场景描述
+              scene_map = {1: "外部群", 2: "外部联系人", 3: "内部群", 4: "内部联系人"}
+              scene = scene_map.get(roomType, f"未知({roomType})")
+
+              # 是否需要门控 (群聊 + 未@)
+              need_gate = is_group and not at_me
+
+              return {
+                  "is_group": is_group,
+                  "at_me": at_me,
+                  "is_image": is_image,
+                  "is_unsupported": is_unsupported,
+                  "chat_id": chat_id,
+                  "session_id": session_id,
+                  "gate_msg": gate_msg,
+                  "scene": scene,
+                  "need_gate": need_gate,
+                  "spoken": spoken,
+                  "receivedName": receivedName,
+                  "groupName": groupName,
+                  "groupRemark": groupRemark,
+                  "fileBase64": fileBase64,
+                  "messageId": messageId,
+                  "roomType": roomType,
+                  "text_type": textType,
+              }
+        code_language: python3
+        outputs:
+          at_me:
+            children: null
+            type: boolean
+          chat_id:
+            children: null
+            type: string
+          fileBase64:
+            children: null
+            type: string
+          gate_msg:
+            children: null
+            type: string
+          groupName:
+            children: null
+            type: string
+          groupRemark:
+            children: null
+            type: string
+          is_group:
+            children: null
+            type: boolean
+          is_image:
+            children: null
+            type: boolean
+          is_unsupported:
+            children: null
+            type: boolean
+          messageId:
+            children: null
+            type: string
+          need_gate:
+            children: null
+            type: boolean
+          receivedName:
+            children: null
+            type: string
+          roomType:
+            children: null
+            type: number
+          scene:
+            children: null
+            type: string
+          session_id:
+            children: null
+            type: string
+          spoken:
+            children: null
+            type: string
+          text_type:
+            children: null
+            type: number
+        selected: false
+        title: 校验 & 预处理
+        type: code
+        variables:
+        - value_selector:
+          - start
+          - spoken
+          variable: spoken
+        - value_selector:
+          - start
+          - rawSpoken
+          variable: rawSpoken
+        - value_selector:
+          - start
+          - receivedName
+          variable: receivedName
+        - value_selector:
+          - start
+          - groupName
+          variable: groupName
+        - value_selector:
+          - start
+          - groupRemark
+          variable: groupRemark
+        - value_selector:
+          - start
+          - roomType
+          variable: roomType
+        - value_selector:
+          - start
+          - atMe
+          variable: atMe
+        - value_selector:
+          - start
+          - textType
+          variable: textType
+        - value_selector:
+          - start
+          - fileBase64
+          variable: fileBase64
+        - value_selector:
+          - start
+          - messageId
+          variable: messageId
+      height: 52
+      id: code_validate
+      position:
+        x: 342
+        y: 254.66666666666663
+      positionAbsolute:
+        x: 342
+        y: 254.66666666666663
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_validate
+            - is_unsupported
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 是否不支持的媒体类型？
+        type: if-else
+      height: 148
+      id: if_unsupported
+      position:
+        x: 684
+        y: 215.33333333333326
+      positionAbsolute:
+        x: 684
+        y: 215.33333333333326
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_validate
+            - need_gate
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 需要门控判断？（false=私聊或已被@，直接放行）
+        type: if-else
+      height: 148
+      id: if_gate
+      position:
+        x: 1046
+        y: 355.1333333333333
+      positionAbsolute:
+        x: 1046
+        y: 355.1333333333333
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        memory: null
+        model:
+          completion_params: {}
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_config:
+          jinja2_variables: []
+        prompt_template:
+        - id: prompt_gate_system
+          role: system
+          text: '你是群聊回复门控器。
+
+            ## 任务
+
+            结合对话历史，判断最后一条用户消息是否应由机器人回复，并还原用户的真实问题。
+
+            ## 真实问题还原规则
+
+            - 若最后一条消息含指代（如"那材料呢？"、"那需要什么？"），结合历史将指代替换为具体实体，输出完整提问。
+
+            - 若本身已清晰，直接复制原消息。
+
+            ## 回复判定规则
+
+            - should_reply = true：企业开户办理（我要开户、办理开户、开户信息提供等）、开户流程/材料/费用咨询、以及其他开户相关话题。
+
+            - should_reply = false：成员间闲聊、互相对话、与开户无关。
+
+            ## 输出格式（严格 JSON）
+
+            {"real_question": "完整问题", "should_reply": true/false, "reason": "判定理由"}
+
+            ## 示例
+
+            对话：用户:"开户需要准备什么？" 机器人:"需要营业执照、法人身份证等。" 用户:"那公章呢？"
+
+            输出：{"real_question": "开户需要准备公章吗？", "should_reply": true, "reason": "开户材料咨询"}
+
+            现在开始处理。'
+        - id: prompt_gate_user
+          role: user
+          text: '群名：  {{#code_validate.groupName#}}
+
+            {{#start.recentContext#}}
+
+            发送者：{{#code_validate.receivedName#}}
+
+            最后一条消息：{{#code_validate.gate_msg#}}'
+        reasoning_format: tagged
+        selected: false
+        structured_output: null
+        structured_output_switch_on: false
+        title: AI 门控判断
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 88
+      id: llm_gate
+      position:
+        x: 1408
+        y: 399.9333333333333
+      positionAbsolute:
+        x: 1408
+        y: 399.9333333333333
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+          import re
+
+          def main(text: str) -> dict:
+              # 方法1：先提取 </think> 之后的内容
+              match = re.search(r'</think>\s*(\{.*\})', text, re.DOTALL)
+              if match:
+                  try:
+                      return json.loads(match.group(1))
+                  except Exception:
+                      return {"real_question": "", "should_reply": False, "reason": "解析失败"}
+              # 方法2：直接找最外层的 JSON（非贪婪匹配，但要注意嵌套）
+              match = re.search(r'\{[^{}]*\}', text)
+              if match:
+                  try:
+                      return json.loads(match.group())
+                  except Exception:
+                      return {"real_question": "", "should_reply": False, "reason": "解析失败"}
+              return {"real_question": "", "should_reply": False, "reason": "未找到JSON"}
+        code_language: python3
+        outputs:
+          real_question:
+            children: null
+            type: string
+          reason:
+            children: null
+            type: string
+          should_reply:
+            children: null
+            type: boolean
+        selected: false
+        title: 解析用户真实问题
+        type: code
+        variables:
+        - value_selector:
+          - llm_gate
+          - text
+          value_type: string
+          variable: text
+      height: 52
+      id: code_parse_gate
+      position:
+        x: 1750
+        y: 432.59999999999997
+      positionAbsolute:
+        x: 1750
+        y: 432.59999999999997
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: true
+            varType: boolean
+            variable_selector:
+            - code_parse_gate
+            - should_reply
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 门控是否放行？
+        type: if-else
+      height: 148
+      id: if_gate_result
+      position:
+        x: 2092
+        y: 393.26666666666665
+      positionAbsolute:
+        x: 2092
+        y: 393.26666666666665
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        memory: null
+        model:
+          completion_params: {}
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_config:
+          jinja2_variables: []
+        prompt_template:
+        - id: prompt_intent_system
+          role: system
+          text: '你是开户意图识别助手。分析用户消息，结合对话上下文（可能包含【历史对话】）判断意图。
+
+            消息格式说明：
+            - 【历史对话】部分（"用户: ... / 机器人: ..."）仅作为上下文参考，用于理解多轮语境；
+            - 只对【当前消息】进行意图识别，不要对【历史对话】中的内容做识别。
+
+            ## 支持的意图
+            - OPEN_ACCOUNT: 明确要办理企业开户。如"我要开户""办理企业开户""想开个户""帮我开户""申请开户""开户怎么办理"。
+            - OPEN_ACCOUNT_QA: 咨询开户相关问题。如"开户需要什么材料""开户流程是什么""开户要多久""开户费用多少""需要哪些证件"。
+            - OTHER: 与开户无关。如闲聊、查询员工工资/账单、加好友/建群等。
+
+            ## 意图区分（重要）
+            - 用户明确表达"办理/申请/想开"开户 → OPEN_ACCOUNT（进入信息收集流程）。
+            - 用户只是问开户"怎么样/需要什么/流程/费用/材料" → OPEN_ACCOUNT_QA（解答咨询）。
+            - 无法确定或与开户无关 → OTHER。
+
+            ## 输出格式
+            只返回一个 JSON 对象，不要输出其他任何文字：
+            {"intent": "<意图>", "confidence": 0.0-1.0, "reason": "判断理由"}
+
+            无法识别时返回：
+            {"intent": "OTHER", "confidence": 0.0, "reason": "无法识别"}'
+        - id: prompt_intent_user
+          role: user
+          text: '{{#start.recentContext#}}
+
+            【当前消息】
+
+            {{#code_validate.receivedName#}}:{{#code_parse_gate.real_question#}}'
+        reasoning_format: tagged
+        selected: false
+        structured_output: null
+        structured_output_switch_on: false
+        title: 开户意图识别
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 88
+      id: llm_intent
+      position:
+        x: 2454
+        y: 405.97777777777776
+      positionAbsolute:
+        x: 2454
+        y: 405.97777777777776
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+          import re
+
+          def main(llm_output, confidence_threshold: float):
+              """解析开户意图 LLM 返回的 JSON，校验置信度阈值，输出意图。
+
+              llm_output 可能是 JSON 字符串（可能带思考标签），也可能是已解析的 dict。
+              """
+              default = {"intent": "OTHER", "confidence": 0.0, "reason": ""}
+
+              if not llm_output:
+                  return default
+
+              try:
+                  if isinstance(llm_output, dict):
+                      data = llm_output
+                  else:
+                      raw = str(llm_output)
+                      raw = re.sub(r"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>", "", raw, flags=re.S | re.I)
+                      data = json.loads(raw.strip())
+                  if not isinstance(data, dict):
+                      data = default
+
+                  intent_str = str(data.get("intent", "OTHER")).upper().strip()
+                  try:
+                      confidence = float(data.get("confidence", 0.0) or 0.0)
+                  except (TypeError, ValueError):
+                      confidence = 0.0
+                  reason = str(data.get("reason", ""))
+
+                  # 置信度低于阈值 → OTHER
+                  if confidence < confidence_threshold:
+                      return default
+
+                  # 兼容别名，统一意图名
+                  if intent_str in ("OPEN_ACCOUNT_INFO", "ACCOUNT_OPENING", "APPLY_OPEN"):
+                      intent_str = "OPEN_ACCOUNT"
+                  if intent_str in ("OPEN_ACCOUNT_QUESTION", "OPEN_QA", "QA"):
+                      intent_str = "OPEN_ACCOUNT_QA"
+                  if intent_str not in ("OPEN_ACCOUNT", "OPEN_ACCOUNT_QA", "OTHER"):
+                      intent_str = "OTHER"
+
+                  return {"intent": intent_str, "confidence": min(max(confidence, 0.0), 1.0), "reason": reason}
+              except (json.JSONDecodeError, ValueError, TypeError):
+                  # 降级：纯文本关键词匹配
+                  text_upper = str(llm_output).strip().upper()
+                  if "开户" not in text_upper:
+                      return default
+                  if any(k in text_upper for k in ("我要开", "想开", "办理", "申请开户", "帮我开", "开个户", "怎么开", "如何开")):
+                      return {"intent": "OPEN_ACCOUNT", "confidence": 0.9, "reason": "关键词匹配"}
+                  return {"intent": "OPEN_ACCOUNT_QA", "confidence": 0.8, "reason": "关键词匹配"}
+        code_language: python3
+        outputs:
+          confidence:
+            children: null
+            type: number
+          intent:
+            children: null
+            type: string
+          reason:
+            children: null
+            type: string
+        selected: false
+        title: 解析开户意图
+        type: code
+        variables:
+        - value_selector:
+          - llm_intent
+          - text
+          value_type: string
+          variable: llm_output
+        - value_selector:
+          - env
+          - CONFIDENCE_THRESHOLD
+          variable: confidence_threshold
+      height: 52
+      id: code_parse_intent
+      position:
+        x: 2796
+        y: 438.64444444444445
+      positionAbsolute:
+        x: 2796
+        y: 438.64444444444445
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: open_account
+          conditions:
+          - comparison_operator: is
+            value: OPEN_ACCOUNT
+            varType: string
+            variable_selector:
+            - code_parse_intent
+            - intent
+          id: open_account
+          logical_operator: and
+        - case_id: qa_guide
+          conditions:
+          - comparison_operator: is
+            value: OPEN_ACCOUNT_QA
+            varType: string
+            variable_selector:
+            - code_parse_intent
+            - intent
+          id: qa_guide
+          logical_operator: and
+        - case_id: other
+          conditions:
+          - comparison_operator: is
+            value: OTHER
+            varType: string
+            variable_selector:
+            - code_parse_intent
+            - intent
+          id: other
+          logical_operator: and
+        selected: false
+        title: 开户意图路由
+        type: if-else
+      height: 268
+      id: if_open_intent
+      position:
+        x: 3138
+        y: 339.31111111111113
+      positionAbsolute:
+        x: 3138
+        y: 339.31111111111113
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        memory: null
+        model:
+          completion_params:
+            temperature: 0.3
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_config:
+          jinja2_variables: []
+        prompt_template:
+        - id: prompt_open_account_system
+          role: system
+          text: |-
+            # 角色定义
+
+            你是企业服务服务商的智能客服，负责帮助企业办理银行/对公账户开户。你正在与客户多轮对话，逐项收集开户必填信息。
+
+            # 必填字段（全部必填，按顺序收集）
+
+            | 字段 | 含义 | 校验规则 |
+            |------|------|---------|
+            | company_name | 企业名称 | 非空 |
+            | uscc | 统一社会信用代码 | 18 位（数字与字母） |
+            | legal_representative | 法定代表人 | 非空 |
+            | contact_phone | 经办人电话 | 11 位手机号 |
+            | account_type | 开户类型 | 基本户 / 一般户 / 专用户 / 其他（按用户表述归类，不确定则填"待确认"） |
+
+            # 任务规则
+
+            1. 结合【历史对话】（客户与机器人已交换的信息，可能已包含部分字段）与【当前消息】，提取/更新上述字段。
+            2. 历史对话中已出现的字段必须保留并原样带回输出；当前消息补充的新字段要更新。
+            3. 严禁编造客户没有提供的信息；客户给的信息不完整或格式不对时，该字段视为缺失。
+            4. 缺失字段一次只追问一个（按上表顺序），除非客户本条消息已提供多个字段。
+            5. 若客户明确表示取消/暂不办理开户，aborted=true，next_question 输出确认取消的话术，不要继续追问。
+            6. 仅回答与开户信息收集相关的内容，不闲聊、不解释流程以外的问题。
+
+            # 输出格式（严格 JSON，只输出一个 JSON 对象，不要输出任何其他文字）
+
+            {
+              "collected": {
+                "company_name": "",
+                "uscc": "",
+                "legal_representative": "",
+                "contact_phone": "",
+                "account_type": ""
+              },
+              "missing": ["company_name", "uscc"],
+              "all_collected": false,
+              "aborted": false,
+              "next_question": "向客户说的话（缺失时追问下一个字段；全部齐了给一句确认话术；取消时给取消确认话术）"
+            }
+
+            # 示例
+
+            历史对话：机器人:"请问贵公司的企业名称是？" 客户:"北京星辰科技有限公司"
+            当前消息："统一社会信用代码 91110108MA01ABC123"
+            输出：{"collected": {"company_name": "北京星辰科技有限公司", "uscc": "91110108MA01ABC123", "legal_representative": "", "contact_phone": "", "account_type": ""}, "missing": ["legal_representative", "contact_phone", "account_type"], "all_collected": false, "aborted": false, "next_question": "请问贵公司的法定代表人是谁？"}
+        - id: prompt_open_account_user
+          role: user
+          text: '【历史对话】
+
+            {{#start.recentContext#}}
+
+            【当前消息】
+
+            {{#code_validate.receivedName#}}:{{#code_parse_gate.real_question#}}'
+        reasoning_format: tagged
+        selected: false
+        structured_output: null
+        structured_output_switch_on: false
+        title: 开户信息收集
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 88
+      id: llm_collect
+      position:
+        x: 3500
+        y: 140.60555555555555
+      positionAbsolute:
+        x: 3500
+        y: 140.60555555555555
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+          import re
+
+          # 必填字段定义：(字段名, 中文名, 校验函数)
+          REQUIRED_FIELDS = [
+              ("company_name", "企业名称", lambda v: bool(v and v.strip())),
+              ("uscc", "统一社会信用代码", lambda v: bool(re.fullmatch(r"[0-9A-Z]{18}", (v or "").strip().upper()))),
+              ("legal_representative", "法定代表人", lambda v: bool(v and v.strip())),
+              ("contact_phone", "经办人电话", lambda v: bool(re.fullmatch(r"1[3-9]\d{9}", (v or "").strip()))),
+              ("account_type", "开户类型", lambda v: bool(v and v.strip())),
+          ]
+
+          QUESTION_MAP = {
+              "company_name": "请问贵公司的企业名称是？",
+              "uscc": "请问贵公司的统一社会信用代码（18位）是？",
+              "legal_representative": "请问贵公司的法定代表人是谁？",
+              "contact_phone": "请问经办人的联系电话（11位手机号）是？",
+              "account_type": "请问需要办理哪种开户类型？（如基本户、一般户、专用户）",
+          }
+
+          def _parse_llm_output(llm_output):
+              """兼容字符串（可能带思考标签）、JSON 字符串、dict。"""
+              if isinstance(llm_output, dict):
+                  return llm_output
+              raw = str(llm_output or "").strip()
+              if not raw:
+                  return {}
+              raw = re.sub(r"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>", "", raw, flags=re.S | re.I)
+              try:
+                  return json.loads(raw)
+              except (json.JSONDecodeError, ValueError):
+                  m = re.search(r"\{.*\}", raw, re.S)
+                  if m:
+                      try:
+                          return json.loads(m.group(0))
+                      except (json.JSONDecodeError, ValueError):
+                          return {}
+              return {}
+
+          def main(llm_output: str) -> dict:
+              data = _parse_llm_output(llm_output)
+
+              # 客户明确取消 → 只回取消话术
+              if data.get("aborted"):
+                  return {
+                      "all_collected": False,
+                      "collected_summary": "",
+                      "missing_names": "",
+                      "reply_text": str(data.get("next_question") or "好的，已为您取消开户办理，如后续需要可随时联系我。"),
+                  }
+
+              collected = data.get("collected") or {}
+              if not isinstance(collected, dict):
+                  collected = {}
+
+              # 规范化 + 校验，缺失字段记录中文名
+              normalized = {}
+              missing = []
+              for key, label, valid in REQUIRED_FIELDS:
+                  val = str(collected.get(key) or "").strip()
+                  if key == "uscc":
+                      val = val.upper()
+                  normalized[key] = val
+                  if not valid(val):
+                      missing.append(label)
+
+              all_collected = not missing
+              summary = "；".join(
+                  f"{label}：{normalized[k]}" for k, label, _ in REQUIRED_FIELDS if normalized.get(k)
+              )
+
+              if not all_collected:
+                  # 缺失时优先用 LLM 的追问，其次按字段顺序自动追问
+                  llm_q = str(data.get("next_question") or "").strip()
+                  if not llm_q or ("？" not in llm_q and "?" not in llm_q and "请提供" not in llm_q and "请问" not in llm_q):
+                      first_label = missing[0]
+                      first_key = next(k for k, label, _ in REQUIRED_FIELDS if label == first_label)
+                      llm_q = QUESTION_MAP.get(first_key, f"请提供：{first_label}。")
+                  reply = llm_q if llm_q else f"请提供：{'、'.join(missing)}。"
+              else:
+                  reply = f"已收到您的开户信息：{summary}。请您确认信息无误，我们马上为您整理开户材料。"
+
+              return {
+                  "all_collected": all_collected,
+                  "collected_summary": summary,
+                  "missing_names": "、".join(missing),
+                  "reply_text": reply,
+              }
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          all_collected:
+            children: null
+            type: boolean
+          collected_summary:
+            children: null
+            type: string
+          missing_names:
+            children: null
+            type: string
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 解析收集结果
+        type: code
+        variables:
+        - value_selector:
+          - llm_collect
+          - text
+          value_type: string
+          variable: llm_output
+      height: 52
+      id: code_parse_collect
+      position:
+        x: 3842
+        y: 130.27222222222223
+      positionAbsolute:
+        x: 3842
+        y: 130.27222222222223
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_parse_collect
+            - all_collected
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 开户信息是否齐全？
+        type: if-else
+      height: 148
+      id: if_all_collected
+      position:
+        x: 4204
+        y: 108.61111111111111
+      positionAbsolute:
+        x: 4204
+        y: 108.61111111111111
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          def main(
+              chat_id: str,
+              robotId: str,
+              apiBaseUrl: str,
+              fileUrl: str,
+              fileName: str,
+              collected_summary: str,
+          ):
+              """构建推送开户材料的 API 请求（type=218 推送任意图片/音视频/文件）。
+
+              fileUrl 未配置（预留场景）时不调用 API，仅回复文字。
+              """
+              summary = collected_summary or "已确认"
+              if not fileUrl:
+                  return {
+                      "api_url": "",
+                      "api_body": "",
+                      "need_api_call": False,
+                      "reply_text": f"您的开户信息已确认（{summary}）。开户材料正在准备中，整理完成后会第一时间发送给您。",
+                  }
+              return {
+                  "api_url": f"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}",
+                  "api_body": json.dumps({
+                      "socketType": 2,
+                      "list": [
+                          {
+                              "type": 218,
+                              "titleList": [chat_id],
+                              "objectName": fileName or "开户申请材料.zip",
+                              "fileUrl": fileUrl,
+                              "fileType": "*",
+                              "extraText": "您的开户申请材料，请查收。",
+                          }
+                      ],
+                  }, ensure_ascii=False),
+                  "need_api_call": True,
+                  "reply_text": f"您的开户信息已确认（{summary}）。已为您发送开户申请材料（{fileName}），请注意查收。",
+              }
+        code_language: python3
+        outputs:
+          api_body:
+            children: null
+            type: string
+          api_url:
+            children: null
+            type: string
+          need_api_call:
+            children: null
+            type: boolean
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 构建文件发送请求
+        type: code
+        variables:
+        - value_selector:
+          - code_validate
+          - chat_id
+          value_type: string
+          variable: chat_id
+        - value_selector:
+          - env
+          - WT_ROBOT_ID
+          variable: robotId
+        - value_selector:
+          - env
+          - WT_API_BASE_URL
+          variable: apiBaseUrl
+        - value_selector:
+          - env
+          - WT_OPEN_ACCOUNT_FILE_URL
+          variable: fileUrl
+        - value_selector:
+          - env
+          - WT_OPEN_ACCOUNT_FILE_NAME
+          variable: fileName
+        - value_selector:
+          - code_parse_collect
+          - collected_summary
+          value_type: string
+          variable: collected_summary
+      height: 52
+      id: code_build_file
+      position:
+        x: 4566
+        y: 0
+      positionAbsolute:
+        x: 4566
+        y: 0
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_build_file
+            - need_api_call
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 需要调用 WorkTool 发文件 API？
+        type: if-else
+      height: 148
+      id: if_need_api
+      position:
+        x: 4928
+        y: 20
+      positionAbsolute:
+        x: 4928
+        y: 20
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{{#code_build_file.api_body#}}'
+          type: json
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 调用 WorkTool 发文件 API
+        type: http-request
+        url: '{{#code_build_file.api_url#}}'
+      height: 95
+      id: http_send_file
+      position:
+        x: 5270
+        y: 0
+      positionAbsolute:
+        x: 5270
+        y: 0
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          def main(
+              reply_collect: str,
+              reply_pending: str,
+              reply_qa_guide: str,
+              reply_guide: str,
+              reply_fallback: str,
+              api_body_raw: str = "",
+          ):
+              """从各分支回复中取第一个非空文本作为最终回复。
+
+              若调用过 WorkTool 发文件 API（api_body_raw 非空），校验返回 code 并修正文案。
+              """
+              final = ""
+              for r in (reply_collect, reply_pending, reply_qa_guide, reply_guide, reply_fallback):
+                  if r:
+                      final = r
+                      break
+              if api_body_raw:
+                  try:
+                      data = json.loads(api_body_raw)
+                      code = data.get("code")
+                      if code is not None and str(code) != "0":
+                          msg = data.get("message") or data.get("msg") or "未知错误"
+                          final = f"开户材料发送失败：{msg}"
+                  except Exception:
+                      final = "开户材料指令已提交，但无法确认发送结果，请留意后续消息。"
+              return {"final_text": final}
+        code_language: python3
+        outputs:
+          final_text:
+            children: null
+            type: string
+        selected: false
+        title: 汇总最终回复
+        type: code
+        variables:
+        - value_selector:
+          - code_build_file
+          - reply_text
+          value_type: string
+          variable: reply_collect
+        - value_selector:
+          - code_pending
+          - reply_text
+          value_type: string
+          variable: reply_pending
+        - value_selector:
+          - code_qa_guide
+          - reply_text
+          value_type: string
+          variable: reply_qa_guide
+        - value_selector:
+          - code_guide
+          - reply_text
+          value_type: string
+          variable: reply_guide
+        - value_selector:
+          - code_fallback
+          - reply_text
+          value_type: string
+          variable: reply_fallback
+        - value_selector:
+          - http_send_file
+          - body
+          value_type: string
+          variable: api_body_raw
+      height: 52
+      id: code_final_text
+      position:
+        x: 5612
+        y: 152
+      positionAbsolute:
+        x: 5612
+        y: 152
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          def main(reply_text: str) -> dict:
+              """信息未收集齐全（或客户取消）时，原样返回追问/确认话术。"""
+              return {"reply_text": reply_text or ""}
+        code_language: python3
+        outputs:
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 生成追问回复
+        type: code
+        variables:
+        - value_selector:
+          - code_parse_collect
+          - reply_text
+          value_type: string
+          variable: reply_text
+      height: 52
+      id: code_pending
+      position:
+        x: 4566
+        y: 360
+      positionAbsolute:
+        x: 4566
+        y: 360
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          def main() -> dict:
+              """开户流程/材料咨询的内置速答（自包含，不依赖知识库）。"""
+              return {
+                  "reply_text": (
+                      "企业开户一般需要准备：营业执照原件、法定代表人及经办人身份证、公章/财务章/法人章、"
+                      "公司章程等资料。办理流程：1. 提供企业信息（企业名称、统一社会信用代码、法定代表人、"
+                      "经办人电话、开户类型）；2. 我们为您整理开户材料并提交；3. 审核通过后安排开户。"
+                      "如需开始办理，请直接回复「我要开户」。"
+                  )
+              }
+        code_language: python3
+        outputs:
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 开户咨询速答
+        type: code
+        variables: []
+      height: 52
+      id: code_qa_guide
+      position:
+        x: 3500
+        y: 360
+      positionAbsolute:
+        x: 3500
+        y: 360
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          def main() -> dict:
+              """与开户无关的消息：引导用户回到开户办理话题。"""
+              return {
+                  "reply_text": (
+                      "您好，我是企业开户办理助手。如需办理企业开户，请直接说「我要开户」；"
+                      "开户流程、材料等问题也可以直接问我。其他业务请咨询对应的客服。"
+                  )
+              }
+        code_language: python3
+        outputs:
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 其他意图引导
+        type: code
+        variables: []
+      height: 52
+      id: code_guide
+      position:
+        x: 3842
+        y: 360
+      positionAbsolute:
+        x: 3842
+        y: 360
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          def main(text_type: int = 1, scene: str = "") -> dict:
+              """兜底回复：不支持的媒体类型给专门提示；未识别意图给通用提示。"""
+              unsupported = {0: "未知类型", 3: "语音", 5: "视频", 7: "小程序", 8: "链接", 9: "文件"}
+              if text_type in unsupported:
+                  name = unsupported[text_type]
+                  return {"reply_text": f"抱歉，暂不支持处理{name}消息，请用文字描述您的需求。"}
+              return {"reply_text": "抱歉，我没理解您的意思，请直接说「我要开户」或描述您的开户问题。"}
+        code_language: python3
+        outputs:
+          reply_text:
+            children: null
+            type: string
+        selected: false
+        title: 兜底回复
+        type: code
+        variables:
+        - value_selector:
+          - code_validate
+          - scene
+          variable: scene
+        - value_selector:
+          - code_validate
+          - text_type
+          variable: text_type
+      height: 52
+      id: code_fallback
+      position:
+        x: 3500
+        y: 0
+      positionAbsolute:
+        x: 3500
+        y: 0
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          def main(
+              reply_text: str,
+              chat_id: str,
+              robotId: str,
+              apiBaseUrl: str,
+          ):
+              """构建发送文本消息的 API 请求（type=203）。"""
+              return {
+                  "api_url": f"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}",
+                  "api_body": json.dumps({
+                      "socketType": 2,
+                      "list": [
+                          {
+                              "type": 203,
+                              "titleList": [chat_id],
+                              "receivedContent": reply_text,
+                          }
+                      ],
+                  }, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          api_body:
+            children: null
+            type: string
+          api_url:
+            children: null
+            type: string
+        selected: false
+        title: 构建文本回复
+        type: code
+        variables:
+        - value_selector:
+          - code_final_text
+          - final_text
+          variable: reply_text
+        - value_selector:
+          - code_validate
+          - chat_id
+          variable: chat_id
+        - value_selector:
+          - env
+          - WT_ROBOT_ID
+          variable: robotId
+        - value_selector:
+          - env
+          - WT_API_BASE_URL
+          variable: apiBaseUrl
+      height: 52
+      id: code_send_text
+      position:
+        x: 5954
+        y: 152
+      positionAbsolute:
+        x: 5954
+        y: 152
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{{#code_send_text.api_body#}}'
+          type: json
+        headers: 'Content-Type: application/json'
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 发送文本回复
+        type: http-request
+        url: '{{#code_send_text.api_url#}}'
+      height: 95
+      id: http_send_text
+      position:
+        x: 6296
+        y: 152
+      positionAbsolute:
+        x: 6296
+        y: 152
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - type: string
+          value_selector:
+          - code_final_text
+          - final_text
+          variable: final_text
+        selected: false
+        title: 结束
+        type: end
+      height: 88
+      id: end
+      position:
+        x: 6638
+        y: 152
+      positionAbsolute:
+        x: 6638
+        y: 152
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - type: string
+          value_selector:
+          - code_validate
+          - scene
+          variable: result_
+        selected: false
+        title: 跳过（门控拒绝）
+        type: end
+      height: 88
+      id: end_skip
+      position:
+        x: 2454
+        y: 612.6055555555556
+      positionAbsolute:
+        x: 2454
+        y: 612.6055555555556
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    viewport:
+      x: -273.32296484550443
+      y: 177.0909158304931
+      zoom: 0.5164451404923566
+  rag_pipeline_variables: []

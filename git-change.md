@@ -4,6 +4,23 @@
 
 ## [开发中]
 
+### 开户办理主流程（企业开户客服）
+- 新增 dify/开户办理-主流程.yml：独立的企业开户办理工作流，接收与「客服-主流程」一致的 WorkTool 回调参数（spoken/rawSpoken/receivedName/groupName/groupRemark/roomType/atMe/textType/fileBase64/messageId/recentContext/companyIds/datasetId）
+- 流程：校验预处理 → 门控（群聊未@时 AI 判断是否回复）→ 开户意图识别（OPEN_ACCOUNT=办理开户 / OPEN_ACCOUNT_QA=开户咨询 / OTHER=其他）→ 多轮收集开户必填信息（企业名称/统一社会信用代码/法定代表人/经办人电话/开户类型，LLM 结合历史对话提取、代码节点做格式校验）→ 信息齐全后通过 WorkTool API（type=218 推送任意图片/音视频/文件）发送开户材料 → 统一经 WorkTool(type=203) 发送回复
+- 开户材料文件 URL 由环境变量 WT_OPEN_ACCOUNT_FILE_URL 配置（预留为空时只回复文字不发文件），文件名 WT_OPEN_ACCOUNT_FILE_NAME 默认 开户申请材料.zip
+- 开户咨询内置速答（材料清单/流程），与开户无关的消息给引导话术；意图识别带置信度阈值（CONFIDENCE_THRESHOLD）与关键词兜底
+
+### 按群绑定 Dify 工作流（workflow_app_id + workflow 配置表）
+- handler 按群绑定表 group_bindings.workflow_app_id 决定调用哪个 Dify 工作流应用：一个群只绑定一个 workflow appid（存 Dify 工作流应用 ID）；API Key 存在新增的 workflow 配置表 workflow_apps（按 app_id 查 key，多个群可共用同一工作流应用），配置文件不再放工作流 API Key（移除 WT_DIFY_WORKFLOW_KEY）
+- 新增 src/workflow_apps.py：WorkflowAppStore（workflow_apps 表：app_id/name/api_key，upsert/get/list/delete）
+- 新增 src/api_workflows.py：GET/POST/DELETE /api/workflows 管理工作流应用注册（app_id、name、api_key）
+- handler 新增 DifyWorkflowHandler._resolve_workflow_key：群绑定 app_id → workflow 配置表查 key → 调 /v1/workflows/run；群未绑定或应用未注册时不调用工作流（不回复，记日志）（src/handler.py、src/main.py）
+- src/binding.py 新增 BindingStore.update_workflow_app：单独回填某群的 workflow_app_id
+- src/init_bindings.py 读取 CSV「工作流AppID」列回填 workflow_app_id（CSV 空值保留库内已有值）
+- .env.dev/.env.prod 移除 WT_DIFY_WORKFLOW_KEY，补充 workflow 配置表说明
+- README 新增「按群绑定 Dify 工作流」一节与 /api/workflows 接口说明；docs/机器人使用指南.md 新增「企业开户办理」章节
+- 接入方式：POST /api/workflows 注册各工作流应用（app_id + api_key），群绑定表 workflow_app_id 引用 app_id
+
 ### 群公司ID同步（最小更新脚本）
 - 新增 src/update_company_ids.py：读取最小 CSV（群ID、公司ID 两列）批量同步公司ID到 group_bindings.company_ids，不触碰群名/状态/知识库/工作流等其他列；空公司ID行跳过避免误清空库内已有值；库中不存在的群跳过并告警、不新增记录；多公司ID任意分隔符统一归一化为顿号
 - 新增 src/binding.py BindingStore.update_company_ids 方法：仅更新 company_ids 与 updated_at 两列（返回是否命中行），供最小更新文件使用

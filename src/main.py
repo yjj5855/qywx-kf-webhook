@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 
 from src.api_bindings import router as bindings_router
 from src.api_memory import router as memory_router
+from src.api_workflows import router as workflows_router
 from src.api_yuque import router as yuque_router
 from src.client import get_client
 from src.config import settings
@@ -79,6 +80,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="WorkTool Callback Service", lifespan=lifespan)
 app.include_router(bindings_router, prefix="/api")
 app.include_router(memory_router, prefix="/api")
+app.include_router(workflows_router, prefix="/api")
 # 语雀外部知识库检索端点：Dify 配置的外部知识库 API 地址需以 /retrieval 结尾，
 # 即填 http://<host>:8000/retrieval（新版本 Dify 会自动在填写的地址后追加 /retrieval）
 app.include_router(yuque_router)

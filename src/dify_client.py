@@ -24,12 +24,13 @@ class DifyWorkflowClient:
         self._timeout = timeout
 
     async def run_workflow(self, inputs: dict, user: str) -> dict:
-        """调用 Dify 主工作流（blocking），返回结束节点输出字段字典。
+        """调用 Dify 工作流（blocking），返回结束节点输出字段字典。
 
-        主工作流结束节点输出 final_text（最终发送到群里的文本）；无输出则返回空 dict。
+        工作流结束节点输出 final_text（最终发送到群里的文本）；无输出则返回空 dict。
+        工作流 API Key 由调用方传入（handler 按群绑定 workflow_app_id 取）。
         """
         if not self._base_url or not self._api_key:
-            raise DifyError("未配置 Dify 主工作流（WT_DIFY_BASE_URL / WT_DIFY_WORKFLOW_KEY）")
+            raise DifyError("未配置 Dify 工作流（WT_DIFY_BASE_URL / 群绑定 workflow_app_id 列）")
 
         url = f"{self._base_url}/v1/workflows/run"
         payload = {

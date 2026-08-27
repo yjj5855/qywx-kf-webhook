@@ -31,10 +31,11 @@ class Settings(BaseSettings):
     # 但所有消息仍会入库）；处理期间到达的消息串行排队不并发。0=关闭防抖（仍串行）。
     debounce_seconds: float = 1.0
 
-    # ---- Dify 主工作流（回调 → 整理参数 → /v1/workflows/run）----
+    # ---- Dify 工作流（回调 → 整理参数 → /v1/workflows/run）----
     dify_base_url: str = "http://192.168.31.204"        # Dify 服务地址，如 http://192.168.31.204
-    # 主工作流「WorkTool 回调消息处理」的 API Key（敏感，配置在 .env 文件: WT_DIFY_WORKFLOW_KEY）
-    dify_workflow_key: str = ""
+    # 注意：Dify 工作流应用的 API Key 不再放配置文件 —— 它跟着 workflow appid 走，
+    # 每个群在群绑定表 group_bindings.workflow_app_id 列配置自己工作流的 Key（app-xxx），
+    # handler 直接取该值调用对应工作流应用；群未绑定 workflow_app_id 则不调用工作流。
     dify_timeout: float = 30.0     # 工作流调用超时（秒）
     # 会话会话ID/群绑定 的本地 SQLite 存储路径
     dify_db_path: str = str(Path(__file__).resolve().parent.parent / "data" / "app.db")

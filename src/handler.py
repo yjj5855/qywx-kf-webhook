@@ -64,14 +64,17 @@ class EchoHandler(MessageHandler):
 
 
 class DifyWorkflowHandler(MessageHandler):
-    """Dify 主工作流处理器：接收回调 → 整理参数 → 调用主工作流 → 记录群聊记录。
+    """Dify 工作流处理器：接收回调 → 整理参数 → 调用群绑定的工作流 → 记录群聊记录。
 
     职责边界（当前分工）：
-    - 把回调字段整理成主工作流 start 节点的 inputs，调用 /v1/workflows/run；
-    - 问答/操作/公司查询等所有意图的回复均由主工作流内部通过 WorkTool 直接发送，
+    - 群绑定（group_bindings.workflow_app_id）存工作流应用 ID，一个群只绑定一个 workflow appid；
+      API Key 存在 workflow 配置表（workflow_apps 表，按 app_id 查 key），不放配置文件；
+      群未绑定或应用未注册时不调用工作流（不回复）；
+    - 把回调字段整理成工作流 start 节点的 inputs，调用 /v1/workflows/run；
+    - 问答/操作/公司查询/开户办理等所有意图的回复均由工作流内部通过 WorkTool 直接发送，
       本处理器不再重复回复，也不在应用层执行公司查询；
-    - 主工作流返回 final_text（最终发送的文本）时，写入群聊记录库（chat_memory）供知识库导出；
-    - 多轮上下文由群聊记录库提供：recentContext 注入主工作流用于意图分类；
+    - 工作流返回 final_text（最终发送的文本）时，写入群聊记录库（chat_memory）供知识库导出；
+    - 多轮上下文由群聊记录库提供：recentContext 注入工作流用于意图分类；
     - 不再持久化/透传 Dify 的 qaConversationId（会话由工作流侧自行管理）。
     """
 
@@ -79,15 +82,11 @@ class DifyWorkflowHandler(MessageHandler):
 
     def __init__(self) -> None:
         from src.binding import BindingStore
-        from src.dify_client import DifyWorkflowClient
         from src.memory import ChatMemoryStore
+        from src.workflow_apps import WorkflowAppStore
 
-        self._dify = DifyWorkflowClient(
-            base_url=settings.dify_base_url,
-            api_key=settings.dify_workflow_key,
-            timeout=settings.dify_timeout,
-        )
         self._bindings = BindingStore(settings.dify_db_path)
+        self._workflow_apps = WorkflowAppStore(settings.dify_db_path)
         self._memory = ChatMemoryStore(settings.dify_db_path)
 
     def _resolve_company_ids(self, req: CallbackRequest) -> str:
@@ -101,6 +100,24 @@ class DifyWorkflowHandler(MessageHandler):
         if binding is None:
             return ""
         return binding.get("company_ids") or ""
+
+    def _resolve_workflow_key(self, req: CallbackRequest) -> str:
+        """取该群绑定的 Dify 工作流应用的 API Key。
+
+        群绑定（group_bindings.workflow_app_id）存工作流应用 ID，API Key 存在
+        workflow 配置表（workflow_apps 表，按 app_id 查 key）：一个群只绑定一个
+        workflow appid，多个群可共用同一工作流应用。未绑定或应用未注册返回空串，
+        调用方跳过本次工作流调用。
+        """
+        if not req.is_group:
+            return ""
+        binding = self._bindings.get_by_group_name(self.PLATFORM, req.chat_id)
+        if binding is None:
+            return ""
+        app_id = (binding.get("workflow_app_id") or "").strip()
+        if not app_id:
+            return ""
+        return self._workflow_apps.get_api_key(app_id)
 
     def _resolve_dataset_id(self, req: CallbackRequest) -> str:
         """按群名反查绑定，取该群的群记忆知识库 ID（memory_dataset_id）。
@@ -145,18 +162,35 @@ class DifyWorkflowHandler(MessageHandler):
         group_name = req.group_name
 
         # 用户消息已由回调层（main.py）全量记录（含防抖合并掉的消息），
-        # 这里只记录主工作流返回的 bot 回复（final_text），供知识库导出。
+        # 这里只记录工作流返回的 bot 回复（final_text），供知识库导出。
+        # 工作流 Key 跟着 workflow appid 走：取群绑定 workflow_app_id 列（如「开户办理-主流程」），
+        # 群未绑定（空）时本次不调用工作流、不回复。
+        api_key = self._resolve_workflow_key(req)
+        if not api_key:
+            logger.info(
+                "群未绑定 workflow appid，跳过工作流调用 session=%r chat_id=%r",
+                session_id, req.chat_id,
+            )
+            return HandleResult(reason="群未绑定 workflow_app_id，不调用工作流")
+
+        from src.dify_client import DifyWorkflowClient
+
+        client = DifyWorkflowClient(
+            base_url=settings.dify_base_url,
+            api_key=api_key,
+            timeout=settings.dify_timeout,
+        )
         try:
-            outputs = await self._dify.run_workflow(
+            outputs = await client.run_workflow(
                 inputs=self._build_inputs(req),
                 user=session_id,
             )
         except Exception as exc:
-            logger.exception("调用 Dify 主工作流失败 session=%r", session_id)
+            logger.exception("调用 Dify 工作流失败 session=%r", session_id)
             # 失败时不回复客户：blocking 调用超时并不代表工作流未执行，
             # 若此时再发兜底文案，可能与工作流迟到的真实回复重复；只记日志。
             return HandleResult(
-                reason=f"Dify 主工作流调用失败（{type(exc).__name__}），不回复客户",
+                reason=f"Dify 工作流调用失败（{type(exc).__name__}），不回复客户",
             )
 
         # 主工作流返回 final_text（最终发送到群里的文本）→ 记录为 bot 消息，供知识库导出
@@ -180,11 +214,11 @@ class DifyWorkflowHandler(MessageHandler):
 # ---- 全局处理器 ----
 
 def _build_default_handler() -> MessageHandler:
-    """根据配置构建默认处理器（优先 Dify 主工作流，未配置则用 Echo 兜底）"""
-    if settings.dify_base_url and settings.dify_workflow_key:
-        logger.info("启用 Dify 主工作流处理器")
+    """根据配置构建默认处理器（配置了 Dify 地址则用 Dify 工作流处理器，否则用 Echo 兜底）"""
+    if settings.dify_base_url:
+        logger.info("启用 Dify 工作流处理器（工作流 Key 按群绑定 workflow_app_id 取）")
         return DifyWorkflowHandler()
-    logger.info("未配置 Dify 主工作流，使用 EchoHandler")
+    logger.info("未配置 Dify 服务地址，使用 EchoHandler")
     return EchoHandler()
 
 

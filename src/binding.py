@@ -204,6 +204,20 @@ class BindingStore:
             )
             conn.commit()
 
+    def update_workflow_app(self, platform: str, group_id: str, workflow_app_id: str) -> bool:
+        """回填群绑定的 Dify 工作流应用 ID（workflow_app_id 列，引用 workflow 配置表）。
+
+        一个群只绑定一个 workflow appid：handler 按此 app_id 从 workflow_apps 表查 API Key
+        后调用对应工作流应用（如「开户办理-主流程」）；空值/未注册则不调用工作流。返回是否命中行。
+        """
+        with sqlite3.connect(self._db_path) as conn:
+            cur = conn.execute(
+                "UPDATE group_bindings SET workflow_app_id = ? WHERE platform = ? AND group_id = ?",
+                (workflow_app_id, platform, group_id),
+            )
+            conn.commit()
+        return cur.rowcount > 0
+
     def delete_legacy_name_keyed(self, names: list[str]) -> None:
         """清理旧版按群名做主键的历史绑定（group_id==group_name 且群名已被 G 编码取代）。
 
