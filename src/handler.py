@@ -151,6 +151,9 @@ class DifyWorkflowHandler(MessageHandler):
             # 当前消息已通过 spoken 单独传入，须用 exclude_latest 排除最新一条，
             # 否则当前消息会重复出现在【历史对话】里
             "recentContext": self._memory.to_context(req.session_id, exclude_latest=True),
+            # 会话当前服务阶段（显式状态，0未开始 1初次触达 2转化签约 3签约后交付 4长期服务），
+            # 注入工作流供 Agent 判断所处阶段；工作流结束节点输出 stage 回写（见 handle）
+            "currentStage": self._memory.get_stage(req.session_id),
             # 群绑定的公司 ID（顿号分隔），供主工作流内部路由/公司查询使用
             "companyIds": self._resolve_company_ids(req),
             # 群记忆知识库 ID，供 QA 子工作流动态检索群聊历史（未绑定为空）
@@ -193,16 +196,35 @@ class DifyWorkflowHandler(MessageHandler):
                 reason=f"Dify 工作流调用失败（{type(exc).__name__}），不回复客户",
             )
 
-        # 主工作流返回 final_text（最终发送到群里的文本）→ 记录为 bot 消息，供知识库导出
+        # 主工作流返回的文本消息（1~3 条：msg1/msg2/msg3）→ 逐条记录为 bot 消息（消息流水模型），
+        # 保证知识库导出与真实发送内容一致（第一阶段会连发 3 条）；缺失时回退 final_text
+        bot_msgs = [str(outputs.get(k) or "").strip() for k in ("msg1", "msg2", "msg3")]
+        bot_msgs = [m for m in bot_msgs if m]
         final_text = _extract_reply_text(outputs.get("final_text") or "")
-        if final_text:
+        if not bot_msgs and final_text:
+            bot_msgs = [final_text]
+        for m in bot_msgs:
             self._memory.append(
-                session_id, final_text,
+                session_id, m,
                 sender_name="机器人",
                 role="bot",
                 group_name=group_name,
             )
-        logger.info("Dify 工作流已处理 session=%r outputs=%s", session_id, outputs)
+
+        # 工作流结束节点输出 stage（Agent 推进后的服务阶段）→ 回写会话状态，
+        # 下一轮通过 currentStage 注入，Agent 可显式判断当前所处阶段
+        stage = outputs.get("stage")
+        try:
+            stage_int = int(stage)
+        except (TypeError, ValueError):
+            stage_int = -1
+        if 0 <= stage_int <= 4:
+            self._memory.set_stage(session_id, stage_int)
+
+        logger.info(
+            "Dify 工作流已处理 session=%r bot_msgs=%d stage=%s outputs=%s",
+            session_id, len(bot_msgs), stage, outputs,
+        )
         if final_text:
             return HandleResult(
                 sent_internally=True,

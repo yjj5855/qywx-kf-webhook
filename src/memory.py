@@ -32,7 +32,15 @@ CREATE TABLE IF NOT EXISTS chat_memory (
 );
 """
 _CREATE_INDEX = "CREATE INDEX IF NOT EXISTS idx_memory_session ON chat_memory(session_id, id);"
-_SCHEMA = _CREATE_TABLE + _CREATE_INDEX
+# 会话服务阶段（显式状态，供工作流 Agent 判断当前处于哪一阶段，不靠历史推断）
+_CREATE_STAGE_TABLE = """
+CREATE TABLE IF NOT EXISTS session_stage (
+    session_id TEXT PRIMARY KEY,
+    stage      INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+);
+"""
+_SCHEMA = _CREATE_TABLE + _CREATE_INDEX + _CREATE_STAGE_TABLE
 
 MAX_TURNS = 40     # 每会话导出后最多保留的消息条数（≈20 轮对话）
 CTX_TURNS = 12     # 注入意图分类时最多携带的消息条数（≈6 轮对话）
@@ -117,6 +125,37 @@ class ChatMemoryStore:
                 "INSERT INTO chat_memory (session_id, role, sender_name, content, created_at, group_name)"
                 " VALUES (?, ?, ?, ?, ?, ?)",
                 (session_id, role, sender_name, content, now, group_name),
+            )
+            conn.commit()
+
+    # ---- 会话服务阶段（显式状态：0未开始 1初次触达 2转化签约 3签约后交付 4长期服务）----
+
+    def get_stage(self, session_id: str) -> int:
+        """取会话当前服务阶段；无记录返回 0。"""
+        if not session_id:
+            return 0
+        with sqlite3.connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT stage FROM session_stage WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()
+        return int(row[0]) if row else 0
+
+    def set_stage(self, session_id: str, stage: int) -> None:
+        """写入会话服务阶段（0-4，越界按 0 处理）。"""
+        if not session_id:
+            return
+        try:
+            stage = int(stage)
+        except (TypeError, ValueError):
+            return
+        stage = min(max(stage, 0), 4)
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute(
+                "INSERT INTO session_stage (session_id, stage, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(session_id) DO UPDATE SET stage = excluded.stage, updated_at = excluded.updated_at",
+                (session_id, stage, now),
             )
             conn.commit()
 

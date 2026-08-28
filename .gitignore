@@ -9,3 +9,6 @@ dist/
 .DS_Store
 logs/
 data/*
+
+# Dify 线上工作流编辑临时文件
+.dify-work/
