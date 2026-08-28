@@ -112,6 +112,7 @@ curl http://localhost:8000/health
 | `WT_HOST` | 监听地址 | `0.0.0.0` |
 | `WT_PORT` | 监听端口 | `8000` |
 | `WT_API_BASE_URL` | WorkTool API 地址 | `https://api.worktool.ymdyes.cn` |
+| `WT_ADMIN_API_KEY` | 管理接口密钥（`/api/*` 请求头 `X-API-Key`，未配置时管理接口禁用） | — |
 | `WT_DEBOUNCE_SECONDS` | 回调防抖窗口（秒）：同一会话窗口内多条消息合并为一次工作流调用，全部消息仍入库 | `1.0` |
 | `WT_DIFY_BASE_URL` | Dify 服务地址 | — |
 | `WT_DIFY_TIMEOUT` | 工作流调用超时（秒） | `30` |
@@ -132,10 +133,19 @@ curl http://localhost:8000/health
 
 ## API 接口
 
+**管理接口鉴权**：所有 `/api/*` 管理接口（群绑定 / workflow 配置 / 对话记忆）都要求请求头
+`X-API-Key: <WT_ADMIN_API_KEY>`；**未配置 `WT_ADMIN_API_KEY` 时管理接口整体禁用（503，fail-closed）**。
+豁免：`/callback`（WorkTool 回调）、`/health`、`/retrieval`（语雀外部知识库，自带 `WT_YUQUE_EXTERNAL_KEY` 鉴权）。
+
+```bash
+# 管理接口调用示例
+curl -H "X-API-Key: <你的管理密钥>" http://localhost:8000/api/bindings
+```
+
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/callback?robotId=xxx` | 接收 WorkTool 消息回调 |
-| GET | `/health` | 健康检查 |
+| POST | `/callback?robotId=xxx` | 接收 WorkTool 消息回调（豁免鉴权） |
+| GET | `/health` | 健康检查（豁免鉴权） |
 | GET | `/api/bindings` | 列出全部群绑定 |
 | GET | `/api/bindings/query` | 查询单个绑定（`platform`、`group_id`） |
 | POST | `/api/bindings` | 新增/更新绑定 |

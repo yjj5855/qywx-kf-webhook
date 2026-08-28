@@ -9,15 +9,16 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from src.auth import require_admin
 from src.config import settings
 from src.workflow_apps import WorkflowAppStore
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/workflows", tags=["workflows"])
+router = APIRouter(prefix="/workflows", tags=["workflows"], dependencies=[Depends(require_admin)])
 
 _store_obj: WorkflowAppStore | None = None
 

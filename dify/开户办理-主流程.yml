@@ -199,10 +199,10 @@ workflow:
       id: start
       position:
         x: 0
-        y: 0
+        y: 112.99999999999994
       positionAbsolute:
         x: 0
-        y: 0
+        y: 112.99999999999994
       selected: false
       type: custom
       width: 242
@@ -318,10 +318,699 @@ workflow:
       id: code_validate
       position:
         x: 342
-        y: 272
+        y: 384.9999999999999
       positionAbsolute:
         x: 342
+        y: 384.9999999999999
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - id: 'true'
+          case_id: 'true'
+          logical_operator: and
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_build_file
+            - need_api_call
+        selected: false
+        title: 需要调 WorkTool 发文件 API？
+        type: if-else
+      height: 148
+      id: if_need_api
+      position:
+        x: 2816
         y: 272
+      positionAbsolute:
+        x: 2816
+        y: 272
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{{#code_build_file.api_body#}}'
+          type: json
+        headers: 'Content-Type: application/json'
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 调用 WorkTool 发文件 API
+        type: http-request
+        url: '{{#code_build_file.api_url#}}'
+      height: 95
+      id: http_send_file
+      position:
+        x: 3158
+        y: 323.16666666666663
+      positionAbsolute:
+        x: 3158
+        y: 323.16666666666663
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "import json\n\n\ndef main(send_file: bool, chat_id: str, robotId: str, apiBaseUrl: str, fileUrl: str, fileName: str):\n    \"\"\"Agent 指示发文件且已配置文件地址时，构建 type=218 推送请求；否则不调用。\"\"\"\n    if\
+          \ not send_file or not fileUrl:\n        return {\"need_api_call\": False, \"api_url\": \"\", \"api_body\": \"\"}\n    return {\n        \"need_api_call\": True,\n        \"api_url\": f\"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}\"\
+          ,\n        \"api_body\": json.dumps({\n            \"socketType\": 2,\n            \"list\": [\n                {\n                    \"type\": 218,\n                    \"titleList\": [chat_id],\n\
+          \                    \"objectName\": fileName or \"开户申请材料.zip\",\n                    \"fileUrl\": fileUrl,\n                    \"fileType\": \"*\",\n                    \"extraText\": \"您的开户申请材料，请查收。\"\
+          ,\n                }\n            ],\n        }, ensure_ascii=False),\n    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          api_body:
+            children: null
+            type: string
+          api_url:
+            children: null
+            type: string
+          need_api_call:
+            children: null
+            type: boolean
+        selected: false
+        title: 构建发文件请求
+        type: code
+        variables:
+        - value_selector:
+          - code_merge
+          - send_file
+          value_type: boolean
+          variable: send_file
+        - value_selector:
+          - code_validate
+          - chat_id
+          value_type: string
+          variable: chat_id
+        - value_selector:
+          - env
+          - WT_ROBOT_ID
+          variable: robotId
+        - value_selector:
+          - env
+          - WT_API_BASE_URL
+          variable: apiBaseUrl
+        - value_selector:
+          - env
+          - WT_OPEN_ACCOUNT_FILE_URL
+          variable: fileUrl
+        - value_selector:
+          - env
+          - WT_OPEN_ACCOUNT_FILE_NAME
+          variable: fileName
+      height: 52
+      id: code_build_file
+      position:
+        x: 2474
+        y: 311.3333333333333
+      positionAbsolute:
+        x: 2474
+        y: 311.3333333333333
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "def main(msg1: str, msg2: str, msg3: str) -> dict:\n    \"\"\"取第一段非空文本作为最终回复（供知识库导出记录）。\"\"\"\n    for m in (msg1, msg2, msg3):\n        if m:\n            return {\"final_text\": m}\n  \
+          \  return {\"final_text\": \"\"}\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          final_text:
+            children: null
+            type: string
+        selected: false
+        title: 汇总最终回复
+        type: code
+        variables:
+        - value_selector:
+          - code_merge
+          - msg1
+          value_type: string
+          variable: msg1
+        - value_selector:
+          - code_merge
+          - msg2
+          value_type: string
+          variable: msg2
+        - value_selector:
+          - code_merge
+          - msg3
+          value_type: string
+          variable: msg3
+      height: 52
+      id: code_final_text
+      position:
+        x: 2474
+        y: 61.33333333333337
+      positionAbsolute:
+        x: 2474
+        y: 61.33333333333337
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - type: string
+          value_selector:
+          - code_final_text
+          - final_text
+          variable: final_text
+        - type: number
+          value_selector:
+          - code_merge
+          - stage
+          variable: stage
+        - type: string
+          value_selector:
+          - code_merge
+          - msg1
+          variable: msg1
+        - type: string
+          value_selector:
+          - code_merge
+          - msg2
+          variable: msg2
+        - type: string
+          value_selector:
+          - code_merge
+          - msg3
+          variable: msg3
+        selected: false
+        title: 结束
+        type: end
+      height: 192
+      id: end
+      position:
+        x: 2816
+        y: 0
+      positionAbsolute:
+        x: 2816
+        y: 0
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_merge
+            - has1
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 第1段文本需要发送？
+        type: if-else
+      height: 124
+      id: if_has_msg1
+      position:
+        x: 2474
+        y: 454.3333333333333
+      positionAbsolute:
+        x: 2474
+        y: 454.3333333333333
+      selected: true
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "import json\n\n\ndef main(msg: str, chat_id: str, robotId: str, apiBaseUrl: str):\n    \"\"\"构建发送文本消息的 API 请求（type=203）。\"\"\"\n    return {\n        \"api_url\": f\"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}\"\
+          ,\n        \"api_body\": json.dumps({\n            \"socketType\": 2,\n            \"list\": [{\"type\": 203, \"titleList\": [chat_id], \"receivedContent\": msg}],\n        }, ensure_ascii=False),\n\
+          \    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          api_body:
+            children: null
+            type: string
+          api_url:
+            children: null
+            type: string
+        selected: false
+        title: 构建第1段文本回复
+        type: code
+        variables:
+        - value_selector:
+          - code_merge
+          - msg1
+          value_type: string
+          variable: msg
+        - value_selector:
+          - code_validate
+          - chat_id
+          variable: chat_id
+        - value_selector:
+          - env
+          - WT_ROBOT_ID
+          variable: robotId
+        - value_selector:
+          - env
+          - WT_API_BASE_URL
+          variable: apiBaseUrl
+      height: 52
+      id: code_send_1
+      position:
+        x: 2816
+        y: 511
+      positionAbsolute:
+        x: 2816
+        y: 511
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{{#code_send_1.api_body#}}'
+          type: json
+        headers: 'Content-Type: application/json'
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 发送第1段文本
+        type: http-request
+        url: '{{#code_send_1.api_url#}}'
+      height: 95
+      id: http_send_1
+      position:
+        x: 3158
+        y: 498.16666666666663
+      positionAbsolute:
+        x: 3158
+        y: 498.16666666666663
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_merge
+            - has2
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 第2段文本需要发送？
+        type: if-else
+      height: 124
+      id: if_has_msg2
+      position:
+        x: 2474
+        y: 658.3333333333333
+      positionAbsolute:
+        x: 2474
+        y: 658.3333333333333
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "import json\n\n\ndef main(msg: str, chat_id: str, robotId: str, apiBaseUrl: str):\n    \"\"\"构建发送文本消息的 API 请求（type=203）。\"\"\"\n    return {\n        \"api_url\": f\"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}\"\
+          ,\n        \"api_body\": json.dumps({\n            \"socketType\": 2,\n            \"list\": [{\"type\": 203, \"titleList\": [chat_id], \"receivedContent\": msg}],\n        }, ensure_ascii=False),\n\
+          \    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          api_body:
+            children: null
+            type: string
+          api_url:
+            children: null
+            type: string
+        selected: false
+        title: 构建第2段文本回复
+        type: code
+        variables:
+        - value_selector:
+          - code_merge
+          - msg2
+          value_type: string
+          variable: msg
+        - value_selector:
+          - code_validate
+          - chat_id
+          variable: chat_id
+        - value_selector:
+          - env
+          - WT_ROBOT_ID
+          variable: robotId
+        - value_selector:
+          - env
+          - WT_API_BASE_URL
+          variable: apiBaseUrl
+      height: 52
+      id: code_send_2
+      position:
+        x: 2816
+        y: 715
+      positionAbsolute:
+        x: 2816
+        y: 715
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{{#code_send_2.api_body#}}'
+          type: json
+        headers: 'Content-Type: application/json'
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 发送第2段文本
+        type: http-request
+        url: '{{#code_send_2.api_url#}}'
+      height: 95
+      id: http_send_2
+      position:
+        x: 3158
+        y: 702.1666666666666
+      positionAbsolute:
+        x: 3158
+        y: 702.1666666666666
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            variable_selector:
+            - code_merge
+            - has3
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: 第3段文本需要发送？
+        type: if-else
+      height: 124
+      id: if_has_msg3
+      position:
+        x: 2474
+        y: 862.3333333333333
+      positionAbsolute:
+        x: 2474
+        y: 862.3333333333333
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "import json\n\n\ndef main(msg: str, chat_id: str, robotId: str, apiBaseUrl: str):\n    \"\"\"构建发送文本消息的 API 请求（type=203）。\"\"\"\n    return {\n        \"api_url\": f\"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}\"\
+          ,\n        \"api_body\": json.dumps({\n            \"socketType\": 2,\n            \"list\": [{\"type\": 203, \"titleList\": [chat_id], \"receivedContent\": msg}],\n        }, ensure_ascii=False),\n\
+          \    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          api_body:
+            children: null
+            type: string
+          api_url:
+            children: null
+            type: string
+        selected: false
+        title: 构建第3段文本回复
+        type: code
+        variables:
+        - value_selector:
+          - code_merge
+          - msg3
+          value_type: string
+          variable: msg
+        - value_selector:
+          - code_validate
+          - chat_id
+          variable: chat_id
+        - value_selector:
+          - env
+          - WT_ROBOT_ID
+          variable: robotId
+        - value_selector:
+          - env
+          - WT_API_BASE_URL
+          variable: apiBaseUrl
+      height: 52
+      id: code_send_3
+      position:
+        x: 2816
+        y: 919
+      positionAbsolute:
+        x: 2816
+        y: 919
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '{{#code_send_3.api_body#}}'
+          type: json
+        headers: 'Content-Type: application/json'
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          read: 30
+          write: 10
+        title: 发送第3段文本
+        type: http-request
+        url: '{{#code_send_3.api_url#}}'
+      height: 95
+      id: http_send_3
+      position:
+        x: 3158
+        y: 906.1666666666666
+      positionAbsolute:
+        x: 3158
+        y: 906.1666666666666
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: stage1
+          conditions:
+          - comparison_operator: '='
+            value: '1'
+            varType: number
+            variable_selector:
+            - start
+            - currentStage
+          id: stage1
+          logical_operator: and
+        - case_id: stage2
+          conditions:
+          - comparison_operator: '='
+            value: '2'
+            varType: number
+            variable_selector:
+            - start
+            - currentStage
+          id: stage2
+          logical_operator: and
+        - case_id: stage3
+          conditions:
+          - comparison_operator: '='
+            value: '3'
+            varType: number
+            variable_selector:
+            - start
+            - currentStage
+          id: stage3
+          logical_operator: and
+        - case_id: stage4
+          conditions:
+          - comparison_operator: '='
+            value: '4'
+            varType: number
+            variable_selector:
+            - start
+            - currentStage
+          id: stage4
+          logical_operator: and
+        selected: false
+        title: 按当前服务阶段分流
+        type: if-else
+      height: 388
+      id: if_stage_router
+      position:
+        x: 684
+        y: 225.66666666666669
+      positionAbsolute:
+        x: 684
+        y: 225.66666666666669
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            value: 'true'
+            varType: boolean
+            variable_selector:
+            - code_validate
+            - at_me
+          - comparison_operator: is
+            value: 'false'
+            varType: boolean
+            variable_selector:
+            - code_validate
+            - is_group
+          id: 'true'
+          logical_operator: or
+        selected: false
+        title: 阶段0：被@或私聊？
+        type: if-else
+      height: 148
+      id: if_stage0_trigger
+      position:
+        x: 1046
+        y: 790.1287878787878
+      positionAbsolute:
+        x: 1046
+        y: 790.1287878787878
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "def main(received_name: str) -> dict:\n    \"\"\"确定性第一阶段：拼装 3 条原文话术，stage 置 1。\"\"\"\n    name = (received_name or \"\").strip()\n    greeting = (name[0] + \"总您好\") if name else \"各位好\"\n\
+          \    m1 = (f\"{greeting}，从园区那边了解贵司注册流程已全部办结，您可以了解一下班步一企通， 财税代理服务，人事外包服务 \"\n          \"这些我们都能帮您一站式解决，属于专为初创企业设置的创业管家，现在凡入驻田野聚落的企业，可享受9个月免费托管试用期，\"\n          \"试用期内全套财税、人事服务全部免费使用；9个月试用期满后，如果使用满意可以继续使用，不满意可随时停用不收任何费用。\"\
+          )\n    m2 = \"这是我们产品的服务平台您可以看一下\\nhttps://www.ibanbu.com/OneBiz/presales.html\"\n    m3 = \"您可以先了解一下，如果有不清楚的地方可以随时与我沟通。\"\n    return {\"action\": \"phase1_intro\", \"reply_text\": m1, \"send_file\"\
+          : False, \"stage\": 1,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": True, \"has2\": True, \"has3\": True}\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          action:
+            children: null
+            type: string
+          reply_text:
+            children: null
+            type: string
+          send_file:
+            children: null
+            type: boolean
+          stage:
+            children: null
+            type: number
+          msg1:
+            children: null
+            type: string
+          msg2:
+            children: null
+            type: string
+          msg3:
+            children: null
+            type: string
+          has1:
+            children: null
+            type: boolean
+          has2:
+            children: null
+            type: boolean
+          has3:
+            children: null
+            type: boolean
+        selected: false
+        title: 第一阶段（确定性3条介绍）
+        type: code
+        variables:
+        - value_selector:
+          - code_validate
+          - receivedName
+          value_type: string
+          variable: received_name
+      height: 52
+      id: code_phase1
+      position:
+        x: 1408
+        y: 789.1348484848484
+      positionAbsolute:
+        x: 1408
+        y: 789.1348484848484
       selected: false
       type: custom
       width: 242
@@ -330,29 +1019,34 @@ workflow:
         agent_parameters:
           instruction:
             type: constant
-            value: "# 角色定义\n\n你是班步一企通的企业创业管家智能客服（企业服务服务商），负责初创企业的一站式财税、人事托管服务。\n你可以调用「提交工单」「查询开户进度」工具；回复文本由工作流统一发送，你只需输出 JSON。\n\n# 是否需要回复（群聊门控）\n\n- 被 @（atMe=true）：必须回复。若处于 stage=0（未开始）→ 主动发起第一阶段介绍（见「第一阶段」触发条件）；其他阶段按当前阶段正常应答。\n\
-              - 未被 @ 的群聊：仅回复与公司服务、签约办理、业务咨询、工单处理相关的内容；成员间闲聊、互相对话、与业务无关 → reply_text 输出空字符串（不回复）。\n- 私聊默认回复。\n\n# 消息类型\n\n若消息类型 textType 不在 1文本/2图片/13合并记录/15带回复文本（如语音3/视频5/文件9等），\n回复：\"抱歉，暂不支持处理该类消息，请用文字描述您的需求。\"\
-              \n\n# 服务阶段状态（重要）\n\n你当前处于的服务阶段：{{#start.currentStage#}}（0=未开始/未知 1=初次触达 2=转化签约 3=签约后交付 4=长期服务）。\n\n阶段推进规则（只前进不倒退，无推进时输出当前值）：\n- 0 未开始：首次接触/客户刚注册 → 按第一阶段发送介绍 → 置 stage=1\n- 1 初次触达：客户提问/次日回访\
-              \ → 按第二阶段答疑转化 → 置 stage=2（若仍在介绍咨询，保持 1）\n- 2 转化签约：客户确认签约/同意办理 → 按第三阶段交付 → 置 stage=3\n- 3 签约后交付：资料收齐、后台开通、顾问对接完成 → 置 stage=4\n- 4 长期服务：保持 4\n\n判断依据优先用上面的阶段号，其次参考【历史对话】；不要重复发送已发过的介绍话术。\n\n#\
-              \ 服务全流程（四阶段，按客户所处阶段响应）\n\n## 第一阶段：微信初次触达（客户刚完成公司注册）\n\n触发条件：群内企业员工 @ 你（atMe=true）且处于 stage=0（未开始/未知），或客户首次咨询公司服务。\n满足即主动发起（不需要客户继续追问），依次执行三步；执行完毕置 stage=1。\n\n当客户是刚注册完成的新公司、新联系人，或首次咨询公司服务时，依次执行三步：\n\
-              \n动作1 发送三大核心托管服务介绍，原文话术：\n\"（群聊场景把\"X总您好\"改为被@员工的称呼，如\"X总您好\"；未知名用\"各位好\"）X总您好，从园区那边了解贵司注册流程已全部办结，您可以了解一下班步一企通， 财税代理服务，人事外包服务 这些我们都能帮您一站式解决，属于专为初创企业设置的创业管家，现在凡入驻田野聚落的企业，可享受9个月免费托管试用期，试用期内全套财税、人事服务全部免费使用；9个月试用期满后，如果使用满意可以继续使用，不满意可随时停用不收任何费用。\"\
-              \n\n动作2 推送产品素材与平台演示链接：\n\"这是我们产品的服务平台您可以看一下\nhttps://www.ibanbu.com/OneBiz/presales.html\"\n\n动作3 线上收尾，预留沟通窗口，原文话术：\n\"您可以先了解一下，如果有不清楚的地方可以随时与我沟通。\"\n\n【阶段备注】留意客户阅读反馈与提出的疑问点，次日统一电话回访解答；需要人工电话回访时调用「提交工单」工具（issue_type=电话回访）。\n\
-              \n## 第二阶段：次日电话转化签约（核心成交环节）\n\n客户就服务提问、犹豫或回访沟通时，按以下话术应对：\n\n步骤1 电话开场破冰（客户为次日回访/再次沟通场景）：\n\"X总您好，我是班步一企通的对接专员，昨天微信给您发了咱们企业托管服务的内容和平台演示链接，请问您抽空看过了吗？有没有哪里看不懂、想详细了解的？\"\n\n步骤2 针对性答疑解惑（对应客户疑问分类）：\n\
-              - 服务细节疑问，话术：\"财税这边我们全程负责记账报税，小程序随时能看收支；人事从签合同、发工资到社保增减员全包；补贴会主动匹配您公司能申报的政策，材料我们整理。\"\n- 9个月免费福利疑问，话术：\"只要是田野聚落入驻企业，9个月内财税服务，人事代理全部免费，没有隐形消费；9个月到期后您觉得好用，再交2500-3000元/年服务费，中途不想用随时可以停，没有捆绑，政策补贴部分，在申请完毕您拿到手之后，收取最高不超过百分之十五的服务费。\"\
-              \n- 专业度&风险顾虑，话术：\"我们有20年企业服务经验，财税、人事都是专职顾问一对一跟进，系统还会自动预警发票、用工风险，规避经营踩坑。\"\n\n步骤3 强化服务核心价值，刺激签约，话术：\n\"您刚注册完公司，后续做账、发员工工资、申报补贴琐事特别多，交给我们托管您不用多头找代办，9个月免费试用刚好帮您度过初创最难的阶段，节省人力和资金成本。\"\n\n步骤4 引导签约，确认办理手续，话术：\n\
-              \"如果您这边认可这套服务，现在就可以走托管签约流程，今天开通权限，我们马上安排顾问对接您公司后续财税人事工作。\"\n\n## 第三阶段：签约后落地交付服务\n\n客户确认签约/同意办理后，依次执行：\n\n动作1 收集企业基础资料（多轮收集，一次追问一项，结合【历史对话】保留已收集项）：\n\"X总，麻烦您提供一下公司营业执照、法人信息、银行账户相关资料，我们录入系统开通平台权限。\"\
-              \n资料齐全后 → 回复确认摘要，并按【开户材料文件地址】决定 send_file；客户不办了 → 回复取消确认。\n\n动作2 开通客户小程序后台：\n\"已经为您开通企业管理后台，就是昨天发您的demo平台，您随时查看报税、发薪进度。\"\n\n动作3 分配专属财税、人事顾问：\n\"后续会有专属顾问添加您微信，月度同步账务、人事台账，有任何经营问题直接对接顾问即可。\"\
-              \n\n动作4 建立长期常态化跟进机制：\n\"每月固定同步：企业收支报表、税务申报完成提醒、新增可申报补贴政策通知。\"\n\n## 第四阶段：全程底层配套保障（沟通时可随时补充）\n\n1. 产品支撑：自研可视化小程序，业务办理进度实时可查，全流程留痕；\n2. 团队支撑：20年企业服务行业积淀，财税、人事专项顾问一对一跟进；\n3. 政策支撑：持续梳理区域创业扶持政策，主动协助企业申报补贴，做到政策红利应享尽享。\n\
-              \n# 工具使用\n\n1. 提交工单：客户事项需要人工/线下处理（人工审核、线下办理、预约、投诉、纠纷、紧急情况、安排电话回访等）→\n   调用「提交工单」工具，收集 company_id（群绑定的公司ID，没有则填企业名称）、issue_type、description、\n   contact_name（默认发送者）、contact_phone（用户提供过才填）→\
-              \ 把工单结果整理进 reply_text；\n   工具不可用或调用失败 → \"已为您登记，客服会尽快与您联系处理。\"\n\n2. 查询开户进度：客户问\"服务开通进度/开通到哪一步/开户进度/开户信息\" → 调用「查询开户进度」工具\n   （此时企业可能尚未开通、没有公司ID：用企业名称或经办人手机号查询，从对话中提取，缺失则追问）\n   → 根据工具返回的开户流程状态，回复\"\
-              您公司的开户已进行到 XX 环节\"（按返回内容组织，不编造）。\n   工具不可用或调用失败 → \"正在为您核实开户进度，稍后反馈给您。\"\n\n# 开户材料文件地址\n\n【开户材料文件地址】{{#env.WT_OPEN_ACCOUNT_FILE_URL#}}（空=未配置）\n- 非空且第三阶段资料收集齐全 → send_file=true，回复\"已为您发送签约/开通材料，请注意查收。\"\
-              \n- 为空 → send_file 恒为 false，不回复发文件相关的话术。\n\n# 输出格式（严格 JSON，只输出一个 JSON 对象，不要输出任何其他文字）\n\n{\"reply_text\": \"第一条文本（用于记录，与 messages[0] 一致）\", \"messages\": [\"第一条文本\", \"第二条文本\", \"第三条文本\"],\
-              \ \"send_file\": true/false, \"stage\": 当前或推进后的阶段号(0-4)}\n- messages 为本次要发送的文本列表（1~3 条），工作流会按顺序逐条发送；第一阶段三步话术 → 3 条，一般回复 → 1 条；\n- 需要发多条时不要合并成一条，逐条列出；无需回复时 messages 为空数组且 reply_text 为空字符串。\n\
-              \n# 注意事项\n\n- 话术中的\"X总\"按客户实际称呼替换：有姓用\"X总/先生/女士\"，未知则用\"您好\"。\n- 不编造工单号、不编造进度数据。\n- 回答极简，纯文本，不使用 Markdown。\n- 每次回复后不追问\"还有其他问题吗\"。\n"
+            value: '# 角色
+
+
+              你是班步一企通企业服务群的智能客服。当前客户尚未正式触达（阶段0），群内这条消息可能与你无关，先判断是否需要回复。
+
+
+              # 判断规则
+
+
+              - 与公司服务、开户、签约、财税、人事、补贴等相关 → 简短应答或引导（如"我们提供财税、人事托管服务，如需了解服务或开户流程可以 @ 我"），reply_text 非空。
+
+              - 成员间闲聊、互相对话、与业务无关 → reply_text 输出空字符串（不回复）。
+
+
+              # 输出（严格 JSON）
+
+
+              {"reply_text": "回复文本（不回复则为空字符串）", "messages": [], "send_file": false, "stage": 0}
+
+
+              阶段保持 0，不要推进。
+
+              '
           model:
             type: constant
             value:
-              completion_params: {}
+              completion_params:
+                temperature: 0.3
               mode: chat
               model: deepseek-v4-flash
               model_type: llm
@@ -370,13 +1064,13 @@ workflow:
               {{#start.receivedName#}}:{{#start.spoken#}}
 
 
-              【消息类型】textType={{#start.textType#}}（1文本 2图片 13合并记录 15带回复文本，其余为不支持类型）
+              【是否被@】{{#code_validate.at_me#}}（true=被@）
 
-              【是否被@】{{#code_validate.at_me#}}（true=被@，被@必须回复）
+              【会话场景】{{#code_validate.scene#}}
 
-              【会话场景】{{#code_validate.scene#}}（外部群/内部群/外部联系人/内部联系人）
+              【群绑定的公司ID】{{#start.companyIds#}}
 
-              【群绑定的公司ID】{{#start.companyIds#}}'
+              【当前服务阶段】{{#start.currentStage#}}'
           tools:
             type: constant
             value:
@@ -434,39 +1128,458 @@ workflow:
         output_schema: {}
         plugin_unique_identifier: langgenius/agent:0.0.42@7b26b1157dae5e2e949731d352cb97dad0897198563dff9151f8d9531e0d26f7
         selected: false
-        title: 客服 Agent
+        title: 门控Agent(阶段0)
         tool_node_version: '2'
         type: agent
-      height: 188
-      id: agent_cs
+      height: 210
+      id: agent_gate
       position:
-        x: 684
-        y: 212.66666666666669
+        x: 1408
+        y: 921.1348484848484
       positionAbsolute:
-        x: 684
-        y: 212.66666666666669
+        x: 1408
+        y: 921.1348484848484
       selected: false
       type: custom
       width: 242
       zIndex: 0
     - data:
-        code: "import json\nimport re\n\n\ndef main(text: str, current_stage: int) -> dict:\n    \"\"\"解析客服 Agent 输出：messages 列表（1~3 段）、send_file、stage；解析失败则整段当第一条。\"\"\"\n    try:\n        stage = int(current_stage)\n\
-          \    except (TypeError, ValueError):\n        stage = 0\n    empty = {\"reply_text\": \"\", \"send_file\": False, \"stage\": stage,\n             \"msg1\": \"\", \"msg2\": \"\", \"msg3\": \"\"\
-          ,\n             \"has1\": False, \"has2\": False, \"has3\": False}\n    if not text:\n        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\"\
-          , \"\", text, flags=re.S | re.I).strip()\n\n    data = None\n    try:\n        data = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw,\
-          \ re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data,\
-          \ dict):\n        # 解析失败：整段当第一条\n        return {\"reply_text\": raw, \"send_file\": False, \"stage\": stage,\n                \"msg1\": raw, \"msg2\": \"\", \"msg3\": \"\",\n                \"\
-          has1\": bool(raw.strip()), \"has2\": False, \"has3\": False}\n\n    send_file = bool(data.get(\"send_file\")) or False\n    try:\n        s = int(data.get(\"stage\", stage))\n    except (TypeError,\
-          \ ValueError):\n        s = stage\n    if not (0 <= s <= 4):\n        s = stage\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n\
-          \    if isinstance(msgs, list):\n        parts = [str(m).strip() for m in msgs if isinstance(m, str) and m.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n \
-          \       return {**empty, \"send_file\": send_file, \"stage\": s}\n\n    m1 = parts[0] if len(parts) > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts)\
-          \ > 2 else \"\"\n    return {\n        \"reply_text\": reply or m1,\n        \"send_file\": send_file,\n        \"stage\": s,\n        \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n        \"has1\"\
-          : bool(m1), \"has2\": bool(m2), \"has3\": bool(m3),\n    }\n"
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '# 角色
+
+
+              你是班步一企通企业创业管家客服。客户已收到过服务介绍（阶段1=初次触达），现在进入答疑转化，目标是推进签约。
+
+
+              # 答疑话术（按客户疑问分类）
+
+
+              - 服务细节疑问："财税这边我们全程负责记账报税，小程序随时能看收支；人事从签合同、发工资到社保增减员全包；补贴会主动匹配您公司能申报的政策，材料我们整理。"
+
+              - 9个月免费福利疑问："只要是田野聚落入驻企业，9个月内财税服务，人事代理全部免费，没有隐形消费；9个月到期后您觉得好用，再交2500-3000元/年服务费，中途不想用随时可以停，没有捆绑，政策补贴部分，在申请完毕您拿到手之后，收取最高不超过百分之十五的服务费。"
+
+              - 专业度&风险顾虑："我们有20年企业服务经验，财税、人事都是专职顾问一对一跟进，系统还会自动预警发票、用工风险，规避经营踩坑。"
+
+
+              # 强化价值与引导签约
+
+
+              客户认可时强化："您刚注册完公司，后续做账、发员工工资、申报补贴琐事特别多，交给我们托管您不用多头找代办，9个月免费试用刚好帮您度过初创最难的阶段，节省人力和资金成本。"
+
+              客户意向明确时引导："如果您这边认可这套服务，现在就可以走托管签约流程，今天开通权限，我们马上安排顾问对接您公司后续财税人事工作。"
+
+
+              # 阶段推进
+
+
+              - 客户【明确表达办理意向】（签约/办理/可以开始/我要办理/好的办吧等）→ stage 输出 2
+
+              - 简单回应（好的/嗯/知道了/收到等）→ 温和回应（"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。"），stage 保持 1
+
+              - 其余答疑 → stage 保持 1
+
+
+              # 工具
+
+
+              需要人工/线下处理（预约、投诉、电话回访等）→ 调用「提交工单」；客户问服务/开户进度 → 调用「查询开户进度」。
+
+
+              # 输出（严格 JSON）
+
+
+              {"reply_text": "第一条文本", "messages": ["第一条", "第二条", "第三条"], "send_file": false, "stage": 1或2}
+
+              '
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.3
+              mode: chat
+              model: deepseek-v4-flash
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '【历史对话】
+
+              {{#start.recentContext#}}
+
+
+              【当前消息】
+
+              {{#start.receivedName#}}:{{#start.spoken#}}
+
+
+              【是否被@】{{#code_validate.at_me#}}（true=被@）
+
+              【会话场景】{{#code_validate.scene#}}
+
+              【群绑定的公司ID】{{#start.companyIds#}}
+
+              【当前服务阶段】{{#start.currentStage#}}'
+          tools:
+            type: constant
+            value:
+            - enabled: true
+              extra:
+                description: 提交一条需要人工/线下处理的服务工单（占位工具，需在 Dify 中绑定实际的工单创建 API）
+              parameters:
+                company_id:
+                  auto: 1
+                  value: null
+                contact_name:
+                  auto: 1
+                  value: null
+                contact_phone:
+                  auto: 1
+                  value: null
+                description:
+                  auto: 1
+                  value: null
+                issue_type:
+                  auto: 1
+                  value: null
+              plugin_id: null
+              provider_name: d99aff08-3887-4e30-8e2f-09cce761be1b
+              provider_show_name: 测试 swagger api
+              settings: {}
+              tool_description: 提交一条需要人工/线下处理的服务工单（占位工具，需在 Dify 中绑定实际的工单创建 API）
+              tool_label: 提交工单
+              tool_name: submitWorkOrder
+              type: api
+            - enabled: true
+              extra:
+                description: 按企业名称或经办人手机号查询企业开户进度（占位工具，接口文档确定后绑定实际 API）
+              parameters:
+                enterprise_name:
+                  auto: 1
+                  value: null
+                phone:
+                  auto: 1
+                  value: null
+              plugin_id: null
+              provider_name: d99aff08-3887-4e30-8e2f-09cce761be1b
+              provider_show_name: 测试 swagger api
+              settings: {}
+              tool_description: 按企业名称或经办人手机号查询企业开户进度（占位工具，接口文档确定后绑定实际 API）
+              tool_label: 查询开户进度
+              tool_name: queryAccountOpeningInfo
+              type: api
+        agent_strategy_label: FunctionCalling
+        agent_strategy_name: function_calling
+        agent_strategy_provider_name: langgenius/agent/agent
+        meta:
+          minimum_dify_version: 1.7.0
+          version: 0.0.2
+        output_schema: {}
+        plugin_unique_identifier: langgenius/agent:0.0.42@7b26b1157dae5e2e949731d352cb97dad0897198563dff9151f8d9531e0d26f7
+        selected: false
+        title: 答疑转化Agent(阶段1)
+        tool_node_version: '2'
+        type: agent
+      height: 210
+      id: agent_convert
+      position:
+        x: 1046
+        y: 153.12878787878788
+      positionAbsolute:
+        x: 1046
+        y: 153.12878787878788
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: "# 角色\n\n你是班步一企通企业创业管家客服。客户已确认办理（阶段2），进入签约交付环节，重点是收集企业基础资料。\n\n# 流程\n\n1. 收集企业基础资料（多轮，一次追问一项，结合【历史对话】保留已收集项）：\n   营业执照、法人信息、银行账户相关资料。\n   开场话术：\"X总，麻烦您提供一下公司营业执照、法人信息、银行账户相关资料，我们录入系统开通平台权限。\"\
+              \n2. 资料齐全 → send_file=true，回复\"已为您发送签约/开通材料，请注意查收\"，stage 输出 3。\n3. 客户表示不办了 → 回复取消确认，stage 保持 2。\n\n# 注意\n\n- 客户只是\"好的/嗯/知道了\"等简单回应 → 温和回应，不重复要资料、不推进（stage 保持 2）。\n- 不要编造资料已收集。\n\n# 工具\n\n\
+              需要人工/线下（材料线下递交、预约等）→ 调用「提交工单」；客户问进度 → 调用「查询开户进度」。\n\n# 输出（严格 JSON）\n\n{\"reply_text\": \"第一条文本\", \"messages\": [\"第一条\"], \"send_file\": true/false, \"stage\": 2或3}\n"
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.3
+              mode: chat
+              model: deepseek-v4-flash
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '【历史对话】
+
+              {{#start.recentContext#}}
+
+
+              【当前消息】
+
+              {{#start.receivedName#}}:{{#start.spoken#}}
+
+
+              【是否被@】{{#code_validate.at_me#}}（true=被@）
+
+              【会话场景】{{#code_validate.scene#}}
+
+              【群绑定的公司ID】{{#start.companyIds#}}
+
+              【当前服务阶段】{{#start.currentStage#}}'
+          tools:
+            type: constant
+            value:
+            - enabled: true
+              extra:
+                description: 提交一条需要人工/线下处理的服务工单（占位工具，需在 Dify 中绑定实际的工单创建 API）
+              parameters:
+                company_id:
+                  auto: 1
+                  value: null
+                contact_name:
+                  auto: 1
+                  value: null
+                contact_phone:
+                  auto: 1
+                  value: null
+                description:
+                  auto: 1
+                  value: null
+                issue_type:
+                  auto: 1
+                  value: null
+              plugin_id: null
+              provider_name: d99aff08-3887-4e30-8e2f-09cce761be1b
+              provider_show_name: 测试 swagger api
+              settings: {}
+              tool_description: 提交一条需要人工/线下处理的服务工单（占位工具，需在 Dify 中绑定实际的工单创建 API）
+              tool_label: 提交工单
+              tool_name: submitWorkOrder
+              type: api
+            - enabled: true
+              extra:
+                description: 按企业名称或经办人手机号查询企业开户进度（占位工具，接口文档确定后绑定实际 API）
+              parameters:
+                enterprise_name:
+                  auto: 1
+                  value: null
+                phone:
+                  auto: 1
+                  value: null
+              plugin_id: null
+              provider_name: d99aff08-3887-4e30-8e2f-09cce761be1b
+              provider_show_name: 测试 swagger api
+              settings: {}
+              tool_description: 按企业名称或经办人手机号查询企业开户进度（占位工具，接口文档确定后绑定实际 API）
+              tool_label: 查询开户进度
+              tool_name: queryAccountOpeningInfo
+              type: api
+        agent_strategy_label: FunctionCalling
+        agent_strategy_name: function_calling
+        agent_strategy_provider_name: langgenius/agent/agent
+        meta:
+          minimum_dify_version: 1.7.0
+          version: 0.0.2
+        output_schema: {}
+        plugin_unique_identifier: langgenius/agent:0.0.42@7b26b1157dae5e2e949731d352cb97dad0897198563dff9151f8d9531e0d26f7
+        selected: false
+        title: 签约交付Agent(阶段2)
+        tool_node_version: '2'
+        type: agent
+      height: 210
+      id: agent_sign
+      position:
+        x: 1388
+        y: 344.1287878787879
+      positionAbsolute:
+        x: 1388
+        y: 344.1287878787879
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '# 角色
+
+
+              你是班步一企通企业创业管家客服。客户已签约，处于交付环节或长期服务中（阶段3或4）。
+
+
+              # 交付话术
+
+
+              - 开通后台："已经为您开通企业管理后台，就是昨天发您的demo平台，您随时查看报税、发薪进度。"
+
+              - 顾问对接："后续会有专属顾问添加您微信，月度同步账务、人事台账，有任何经营问题直接对接顾问即可。"
+
+              - 每月跟进："每月固定同步：企业收支报表、税务申报完成提醒、新增可申报补贴政策通知。"
+
+
+              # 一般咨询
+
+
+              客户问财税、人事、补贴等问题 → 尽量解答；补贴政策细节 → 引导联系政府补贴顾问（对接人蔡老师）。
+
+
+              # 配套保障（可随时补充）
+
+
+              - 产品支撑：自研可视化小程序，业务办理进度实时可查，全流程留痕
+
+              - 团队支撑：20年企业服务行业积淀，财税、人事专项顾问一对一跟进
+
+              - 政策支撑：持续梳理区域创业扶持政策，主动协助企业申报补贴
+
+
+              # 阶段
+
+
+              交付完成 → stage 输出 4；已是 4 → 保持 4。
+
+
+              # 工具
+
+
+              需要人工/线下 → 调用「提交工单」；客户问开通/服务进度 → 调用「查询开户进度」。
+
+
+              # 输出（严格 JSON）
+
+
+              {"reply_text": "第一条文本", "messages": ["第一条"], "send_file": false, "stage": 3或4}
+
+              '
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.3
+              mode: chat
+              model: deepseek-v4-flash
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '【历史对话】
+
+              {{#start.recentContext#}}
+
+
+              【当前消息】
+
+              {{#start.receivedName#}}:{{#start.spoken#}}
+
+
+              【是否被@】{{#code_validate.at_me#}}（true=被@）
+
+              【会话场景】{{#code_validate.scene#}}
+
+              【群绑定的公司ID】{{#start.companyIds#}}
+
+              【当前服务阶段】{{#start.currentStage#}}'
+          tools:
+            type: constant
+            value:
+            - enabled: true
+              extra:
+                description: 提交一条需要人工/线下处理的服务工单（占位工具，需在 Dify 中绑定实际的工单创建 API）
+              parameters:
+                company_id:
+                  auto: 1
+                  value: null
+                contact_name:
+                  auto: 1
+                  value: null
+                contact_phone:
+                  auto: 1
+                  value: null
+                description:
+                  auto: 1
+                  value: null
+                issue_type:
+                  auto: 1
+                  value: null
+              plugin_id: null
+              provider_name: d99aff08-3887-4e30-8e2f-09cce761be1b
+              provider_show_name: 测试 swagger api
+              settings: {}
+              tool_description: 提交一条需要人工/线下处理的服务工单（占位工具，需在 Dify 中绑定实际的工单创建 API）
+              tool_label: 提交工单
+              tool_name: submitWorkOrder
+              type: api
+            - enabled: true
+              extra:
+                description: 按企业名称或经办人手机号查询企业开户进度（占位工具，接口文档确定后绑定实际 API）
+              parameters:
+                enterprise_name:
+                  auto: 1
+                  value: null
+                phone:
+                  auto: 1
+                  value: null
+              plugin_id: null
+              provider_name: d99aff08-3887-4e30-8e2f-09cce761be1b
+              provider_show_name: 测试 swagger api
+              settings: {}
+              tool_description: 按企业名称或经办人手机号查询企业开户进度（占位工具，接口文档确定后绑定实际 API）
+              tool_label: 查询开户进度
+              tool_name: queryAccountOpeningInfo
+              type: api
+        agent_strategy_label: FunctionCalling
+        agent_strategy_name: function_calling
+        agent_strategy_provider_name: langgenius/agent/agent
+        meta:
+          minimum_dify_version: 1.7.0
+          version: 0.0.2
+        output_schema: {}
+        plugin_unique_identifier: langgenius/agent:0.0.42@7b26b1157dae5e2e949731d352cb97dad0897198563dff9151f8d9531e0d26f7
+        selected: false
+        title: 交付长期Agent(阶段3-4)
+        tool_node_version: '2'
+        type: agent
+      height: 210
+      id: agent_deliver
+      position:
+        x: 1046
+        y: 500.12878787878776
+      positionAbsolute:
+        x: 1046
+        y: 500.12878787878776
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "import json\nimport re\n\nMATERIAL_HINTS = (\"营业执照\", \"法人信息\", \"银行账户\")\n\n\ndef _is_material_collect(text: str) -> bool:\n    return sum(1 for k in MATERIAL_HINTS if k in text) >= 2\n\n\
+          \ndef _clamp_stage(agent_stage, current_stage: int) -> int:\n    try:\n        s = int(agent_stage)\n    except (TypeError, ValueError):\n        s = current_stage\n    if not (0 <= s <= 4):\n\
+          \        s = current_stage\n    if current_stage == 0:\n        return 0\n    return min(max(s, current_stage), current_stage + 1)\n\n\ndef main(text: str, current_stage: int) -> dict:\n    try:\n\
+          \        stage = int(current_stage)\n    except (TypeError, ValueError):\n        stage = 0\n    if not (0 <= stage <= 4):\n        stage = 0\n\n    empty = {\"action\": \"\", \"reply_text\":\
+          \ \"\", \"send_file\": False, \"stage\": stage,\n             \"msg1\": \"\", \"msg2\": \"\", \"msg3\": \"\",\n             \"has1\": False, \"has2\": False, \"has3\": False}\n    if not text:\n\
+          \        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\", \"\", text, flags=re.S | re.I).strip()\n    data = None\n    try:\n        data\
+          \ = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw, re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n\
+          \            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data, dict):\n        return {**empty, \"reply_text\": raw, \"msg1\": raw, \"has1\"\
+          : bool(raw.strip())}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"stage\", stage),\
+          \ stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip() for x\
+          \ in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
+          \ \"stage\": out_stage}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 = parts[0] if len(parts)\
+          \ > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file,\
+          \ \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3)}\n"
         code_language: python3
         desc: ''
         isInIteration: false
         isInLoop: false
         outputs:
+          action:
+            children: null
+            type: string
           reply_text:
             children: null
             type: string
@@ -495,11 +1608,11 @@ workflow:
             children: null
             type: boolean
         selected: false
-        title: 解析Agent输出
+        title: 解析门控Agent
         type: code
         variables:
         - value_selector:
-          - agent_cs
+          - agent_gate
           - text
           value_type: string
           variable: text
@@ -509,551 +1622,410 @@ workflow:
           value_type: number
           variable: current_stage
       height: 52
-      id: code_parse_agent
+      id: code_parse_gate
       position:
-        x: 1026
-        y: 312
+        x: 1750
+        y: 1035.1348484848484
       positionAbsolute:
-        x: 1026
-        y: 312
+        x: 1750
+        y: 1035.1348484848484
       selected: false
       type: custom
       width: 242
       zIndex: 0
     - data:
-        code: "import json\n\n\ndef main(send_file: bool, chat_id: str, robotId: str, apiBaseUrl: str, fileUrl: str, fileName: str):\n    \"\"\"Agent 指示发文件且已配置文件地址时，构建 type=218 推送请求；否则不调用。\"\"\"\n    if\
-          \ not send_file or not fileUrl:\n        return {\"need_api_call\": False, \"api_url\": \"\", \"api_body\": \"\"}\n    return {\n        \"need_api_call\": True,\n        \"api_url\": f\"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}\"\
-          ,\n        \"api_body\": json.dumps({\n            \"socketType\": 2,\n            \"list\": [\n                {\n                    \"type\": 218,\n                    \"titleList\": [chat_id],\n\
-          \                    \"objectName\": fileName or \"开户申请材料.zip\",\n                    \"fileUrl\": fileUrl,\n                    \"fileType\": \"*\",\n                    \"extraText\": \"您的开户申请材料，请查收。\"\
-          ,\n                }\n            ],\n        }, ensure_ascii=False),\n    }\n"
+        code: "import json\nimport re\n\nMATERIAL_HINTS = (\"营业执照\", \"法人信息\", \"银行账户\")\n\n\ndef _is_material_collect(text: str) -> bool:\n    return sum(1 for k in MATERIAL_HINTS if k in text) >= 2\n\n\
+          \ndef _clamp_stage(agent_stage, current_stage: int) -> int:\n    try:\n        s = int(agent_stage)\n    except (TypeError, ValueError):\n        s = current_stage\n    if not (0 <= s <= 4):\n\
+          \        s = current_stage\n    if current_stage == 0:\n        return 0\n    return min(max(s, current_stage), current_stage + 1)\n\n\ndef main(text: str, current_stage: int) -> dict:\n    try:\n\
+          \        stage = int(current_stage)\n    except (TypeError, ValueError):\n        stage = 0\n    if not (0 <= stage <= 4):\n        stage = 0\n\n    empty = {\"action\": \"\", \"reply_text\":\
+          \ \"\", \"send_file\": False, \"stage\": stage,\n             \"msg1\": \"\", \"msg2\": \"\", \"msg3\": \"\",\n             \"has1\": False, \"has2\": False, \"has3\": False}\n    if not text:\n\
+          \        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\", \"\", text, flags=re.S | re.I).strip()\n    data = None\n    try:\n        data\
+          \ = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw, re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n\
+          \            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data, dict):\n        return {**empty, \"reply_text\": raw, \"msg1\": raw, \"has1\"\
+          : bool(raw.strip())}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"stage\", stage),\
+          \ stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip() for x\
+          \ in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
+          \ \"stage\": out_stage}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 = parts[0] if len(parts)\
+          \ > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file,\
+          \ \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3)}\n"
         code_language: python3
         desc: ''
         isInIteration: false
         isInLoop: false
         outputs:
-          api_body:
+          action:
             children: null
             type: string
-          api_url:
+          reply_text:
             children: null
             type: string
-          need_api_call:
+          send_file:
+            children: null
+            type: boolean
+          stage:
+            children: null
+            type: number
+          msg1:
+            children: null
+            type: string
+          msg2:
+            children: null
+            type: string
+          msg3:
+            children: null
+            type: string
+          has1:
+            children: null
+            type: boolean
+          has2:
+            children: null
+            type: boolean
+          has3:
             children: null
             type: boolean
         selected: false
-        title: 构建发文件请求
+        title: 解析答疑Agent
         type: code
         variables:
         - value_selector:
-          - code_parse_agent
+          - agent_convert
+          - text
+          value_type: string
+          variable: text
+        - value_selector:
+          - start
+          - currentStage
+          value_type: number
+          variable: current_stage
+      height: 52
+      id: code_parse_convert
+      position:
+        x: 1750
+        y: 267.1287878787879
+      positionAbsolute:
+        x: 1750
+        y: 267.1287878787879
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "import json\nimport re\n\nMATERIAL_HINTS = (\"营业执照\", \"法人信息\", \"银行账户\")\n\n\ndef _is_material_collect(text: str) -> bool:\n    return sum(1 for k in MATERIAL_HINTS if k in text) >= 2\n\n\
+          \ndef _clamp_stage(agent_stage, current_stage: int) -> int:\n    try:\n        s = int(agent_stage)\n    except (TypeError, ValueError):\n        s = current_stage\n    if not (0 <= s <= 4):\n\
+          \        s = current_stage\n    if current_stage == 0:\n        return 0\n    return min(max(s, current_stage), current_stage + 1)\n\n\ndef main(text: str, current_stage: int) -> dict:\n    try:\n\
+          \        stage = int(current_stage)\n    except (TypeError, ValueError):\n        stage = 0\n    if not (0 <= stage <= 4):\n        stage = 0\n\n    empty = {\"action\": \"\", \"reply_text\":\
+          \ \"\", \"send_file\": False, \"stage\": stage,\n             \"msg1\": \"\", \"msg2\": \"\", \"msg3\": \"\",\n             \"has1\": False, \"has2\": False, \"has3\": False}\n    if not text:\n\
+          \        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\", \"\", text, flags=re.S | re.I).strip()\n    data = None\n    try:\n        data\
+          \ = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw, re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n\
+          \            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data, dict):\n        return {**empty, \"reply_text\": raw, \"msg1\": raw, \"has1\"\
+          : bool(raw.strip())}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"stage\", stage),\
+          \ stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip() for x\
+          \ in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
+          \ \"stage\": out_stage}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 = parts[0] if len(parts)\
+          \ > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file,\
+          \ \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3)}\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          action:
+            children: null
+            type: string
+          reply_text:
+            children: null
+            type: string
+          send_file:
+            children: null
+            type: boolean
+          stage:
+            children: null
+            type: number
+          msg1:
+            children: null
+            type: string
+          msg2:
+            children: null
+            type: string
+          msg3:
+            children: null
+            type: string
+          has1:
+            children: null
+            type: boolean
+          has2:
+            children: null
+            type: boolean
+          has3:
+            children: null
+            type: boolean
+        selected: false
+        title: 解析签约Agent
+        type: code
+        variables:
+        - value_selector:
+          - agent_sign
+          - text
+          value_type: string
+          variable: text
+        - value_selector:
+          - start
+          - currentStage
+          value_type: number
+          variable: current_stage
+      height: 52
+      id: code_parse_sign
+      position:
+        x: 1750
+        y: 458.1287878787878
+      positionAbsolute:
+        x: 1750
+        y: 458.1287878787878
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "import json\nimport re\n\nMATERIAL_HINTS = (\"营业执照\", \"法人信息\", \"银行账户\")\n\n\ndef _is_material_collect(text: str) -> bool:\n    return sum(1 for k in MATERIAL_HINTS if k in text) >= 2\n\n\
+          \ndef _clamp_stage(agent_stage, current_stage: int) -> int:\n    try:\n        s = int(agent_stage)\n    except (TypeError, ValueError):\n        s = current_stage\n    if not (0 <= s <= 4):\n\
+          \        s = current_stage\n    if current_stage == 0:\n        return 0\n    return min(max(s, current_stage), current_stage + 1)\n\n\ndef main(text: str, current_stage: int) -> dict:\n    try:\n\
+          \        stage = int(current_stage)\n    except (TypeError, ValueError):\n        stage = 0\n    if not (0 <= stage <= 4):\n        stage = 0\n\n    empty = {\"action\": \"\", \"reply_text\":\
+          \ \"\", \"send_file\": False, \"stage\": stage,\n             \"msg1\": \"\", \"msg2\": \"\", \"msg3\": \"\",\n             \"has1\": False, \"has2\": False, \"has3\": False}\n    if not text:\n\
+          \        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\", \"\", text, flags=re.S | re.I).strip()\n    data = None\n    try:\n        data\
+          \ = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw, re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n\
+          \            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data, dict):\n        return {**empty, \"reply_text\": raw, \"msg1\": raw, \"has1\"\
+          : bool(raw.strip())}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"stage\", stage),\
+          \ stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip() for x\
+          \ in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
+          \ \"stage\": out_stage}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 = parts[0] if len(parts)\
+          \ > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file,\
+          \ \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3)}\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          action:
+            children: null
+            type: string
+          reply_text:
+            children: null
+            type: string
+          send_file:
+            children: null
+            type: boolean
+          stage:
+            children: null
+            type: number
+          msg1:
+            children: null
+            type: string
+          msg2:
+            children: null
+            type: string
+          msg3:
+            children: null
+            type: string
+          has1:
+            children: null
+            type: boolean
+          has2:
+            children: null
+            type: boolean
+          has3:
+            children: null
+            type: boolean
+        selected: false
+        title: 解析交付Agent
+        type: code
+        variables:
+        - value_selector:
+          - agent_deliver
+          - text
+          value_type: string
+          variable: text
+        - value_selector:
+          - start
+          - currentStage
+          value_type: number
+          variable: current_stage
+      height: 52
+      id: code_parse_deliver
+      position:
+        x: 1750
+        y: 614.1287878787878
+      positionAbsolute:
+        x: 1750
+        y: 614.1287878787878
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "def main(\n    p1_msg1: str, p1_msg2: str, p1_msg3: str, p1_send_file, p1_stage,\n    g_msg1: str, g_send_file, g_stage,\n    c_msg1: str, c_msg2: str, c_msg3: str, c_send_file, c_stage,\n\
+          \    s_msg1: str, s_msg2: str, s_msg3: str, s_send_file, s_stage,\n    d_msg1: str, d_msg2: str, d_msg3: str, d_send_file, d_stage,\n):\n    \"\"\"聚合各阶段分支的输出：取第一个非空 msg1 所在分支的全部字段。\"\"\"\n   \
+          \ branches = [\n        {\"msg1\": p1_msg1, \"msg2\": p1_msg2, \"msg3\": p1_msg3, \"send_file\": bool(p1_send_file), \"stage\": p1_stage},\n        {\"msg1\": g_msg1, \"msg2\": \"\", \"msg3\"\
+          : \"\", \"send_file\": bool(g_send_file), \"stage\": g_stage},\n        {\"msg1\": c_msg1, \"msg2\": c_msg2, \"msg3\": c_msg3, \"send_file\": bool(c_send_file), \"stage\": c_stage},\n        {\"\
+          msg1\": s_msg1, \"msg2\": s_msg2, \"msg3\": s_msg3, \"send_file\": bool(s_send_file), \"stage\": s_stage},\n        {\"msg1\": d_msg1, \"msg2\": d_msg2, \"msg3\": d_msg3, \"send_file\": bool(d_send_file),\
+          \ \"stage\": d_stage},\n    ]\n    for b in branches:\n        if b[\"msg1\"]:\n            return {\n                \"msg1\": b[\"msg1\"], \"msg2\": b[\"msg2\"], \"msg3\": b[\"msg3\"],\n   \
+          \             \"send_file\": b[\"send_file\"], \"stage\": b[\"stage\"],\n                \"has1\": bool(b[\"msg1\"]), \"has2\": bool(b[\"msg2\"]), \"has3\": bool(b[\"msg3\"]),\n            }\n\
+          \    return {\"msg1\": \"\", \"msg2\": \"\", \"msg3\": \"\", \"send_file\": False, \"stage\": 0,\n            \"has1\": False, \"has2\": False, \"has3\": False}\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          msg1:
+            children: null
+            type: string
+          msg2:
+            children: null
+            type: string
+          msg3:
+            children: null
+            type: string
+          send_file:
+            children: null
+            type: boolean
+          stage:
+            children: null
+            type: number
+          has1:
+            children: null
+            type: boolean
+          has2:
+            children: null
+            type: boolean
+          has3:
+            children: null
+            type: boolean
+        selected: false
+        title: 汇总各阶段输出
+        type: code
+        variables:
+        - value_selector:
+          - code_phase1
+          - msg1
+          value_type: string
+          variable: p1_msg1
+        - value_selector:
+          - code_phase1
+          - msg2
+          value_type: string
+          variable: p1_msg2
+        - value_selector:
+          - code_phase1
+          - msg3
+          value_type: string
+          variable: p1_msg3
+        - value_selector:
+          - code_phase1
           - send_file
           value_type: boolean
-          variable: send_file
+          variable: p1_send_file
         - value_selector:
-          - code_validate
-          - chat_id
-          value_type: string
-          variable: chat_id
-        - value_selector:
-          - env
-          - WT_ROBOT_ID
-          variable: robotId
-        - value_selector:
-          - env
-          - WT_API_BASE_URL
-          variable: apiBaseUrl
-        - value_selector:
-          - env
-          - WT_OPEN_ACCOUNT_FILE_URL
-          variable: fileUrl
-        - value_selector:
-          - env
-          - WT_OPEN_ACCOUNT_FILE_NAME
-          variable: fileName
-      height: 52
-      id: code_build_file
-      position:
-        x: 1368
-        y: 320.6666666666667
-      positionAbsolute:
-        x: 1368
-        y: 320.6666666666667
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        cases:
-        - case_id: 'true'
-          conditions:
-          - comparison_operator: is
-            value: 'true'
-            variable_selector:
-            - code_build_file
-            - need_api_call
-          id: 'true'
-          logical_operator: and
-        selected: false
-        title: 需要调 WorkTool 发文件 API？
-        type: if-else
-      height: 148
-      id: if_need_api
-      position:
-        x: 1710
-        y: 281.33333333333337
-      positionAbsolute:
-        x: 1710
-        y: 281.33333333333337
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        authorization:
-          type: no-auth
-        body:
-          data:
-          - type: text
-            value: '{{#code_build_file.api_body#}}'
-          type: json
-        headers: 'Content-Type: application/json'
-        method: post
-        params: ''
-        retry_config:
-          max_retries: 0
-          retry_enabled: false
-          retry_interval: 100
-        selected: false
-        ssl_verify: true
-        timeout:
-          connect: 10
-          read: 30
-          write: 10
-        title: 调用 WorkTool 发文件 API
-        type: http-request
-        url: '{{#code_build_file.api_url#}}'
-      height: 95
-      id: http_send_file
-      position:
-        x: 2072
-        y: 288.68333333333334
-      positionAbsolute:
-        x: 2072
-        y: 288.68333333333334
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        code: "def main(msg1: str, msg2: str, msg3: str) -> dict:\n    \"\"\"取第一段非空文本作为最终回复（供知识库导出记录）。\"\"\"\n    for m in (msg1, msg2, msg3):\n        if m:\n            return {\"final_text\": m}\n  \
-          \  return {\"final_text\": \"\"}\n"
-        code_language: python3
-        desc: ''
-        isInIteration: false
-        isInLoop: false
-        outputs:
-          final_text:
-            children: null
-            type: string
-        selected: true
-        title: 汇总最终回复
-        type: code
-        variables:
-        - value_selector:
-          - code_parse_agent
-          - msg1
-          value_type: string
-          variable: msg1
-        - value_selector:
-          - code_parse_agent
-          - msg2
-          value_type: string
-          variable: msg2
-        - value_selector:
-          - code_parse_agent
-          - msg3
-          value_type: string
-          variable: msg3
-      height: 52
-      id: code_final_text
-      position:
-        x: 5632
-        y: 492.4000000000001
-      positionAbsolute:
-        x: 5632
-        y: 492.4000000000001
-      selected: true
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        outputs:
-        - type: string
-          value_selector:
-          - code_final_text
-          - final_text
-          variable: final_text
-        - type: number
-          value_selector:
-          - code_parse_agent
+          - code_phase1
           - stage
-          variable: stage
-        - type: string
-          value_selector:
-          - code_parse_agent
-          - msg1
-          variable: msg1
-        - type: string
-          value_selector:
-          - code_parse_agent
-          - msg2
-          variable: msg2
-        - type: string
-          value_selector:
-          - code_parse_agent
-          - msg3
-          variable: msg3
-        selected: false
-        title: 结束
-        type: end
-      height: 114
-      id: end
-      position:
-        x: 5974
-        y: 470.0666666666667
-      positionAbsolute:
-        x: 5974
-        y: 470.0666666666667
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        cases:
-        - case_id: 'true'
-          conditions:
-          - comparison_operator: is
-            value: 'true'
-            variable_selector:
-            - code_parse_agent
-            - has1
-          id: 'true'
-          logical_operator: and
-        selected: false
-        title: 第1段文本需要发送？
-        type: if-else
-      height: 148
-      id: if_has_msg1
-      position:
-        x: 2434
-        y: 318.85
-      positionAbsolute:
-        x: 2434
-        y: 318.85
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        code: "import json\n\n\ndef main(msg: str, chat_id: str, robotId: str, apiBaseUrl: str):\n    \"\"\"构建发送文本消息的 API 请求（type=203）。\"\"\"\n    return {\n        \"api_url\": f\"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}\"\
-          ,\n        \"api_body\": json.dumps({\n            \"socketType\": 2,\n            \"list\": [{\"type\": 203, \"titleList\": [chat_id], \"receivedContent\": msg}],\n        }, ensure_ascii=False),\n\
-          \    }\n"
-        code_language: python3
-        desc: ''
-        isInIteration: false
-        isInLoop: false
-        outputs:
-          api_body:
-            children: null
-            type: string
-          api_url:
-            children: null
-            type: string
-        selected: false
-        title: 构建第1段文本回复
-        type: code
-        variables:
+          value_type: number
+          variable: p1_stage
         - value_selector:
-          - code_parse_agent
+          - code_parse_gate
           - msg1
           value_type: string
-          variable: msg
+          variable: g_msg1
         - value_selector:
-          - code_validate
-          - chat_id
-          variable: chat_id
+          - code_parse_gate
+          - send_file
+          value_type: boolean
+          variable: g_send_file
         - value_selector:
-          - env
-          - WT_ROBOT_ID
-          variable: robotId
+          - code_parse_gate
+          - stage
+          value_type: number
+          variable: g_stage
         - value_selector:
-          - env
-          - WT_API_BASE_URL
-          variable: apiBaseUrl
-      height: 52
-      id: code_send_1
-      position:
-        x: 2796
-        y: 343.3666666666667
-      positionAbsolute:
-        x: 2796
-        y: 343.3666666666667
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        authorization:
-          type: no-auth
-        body:
-          data:
-          - type: text
-            value: '{{#code_send_1.api_body#}}'
-          type: json
-        headers: 'Content-Type: application/json'
-        method: post
-        params: ''
-        retry_config:
-          max_retries: 0
-          retry_enabled: false
-          retry_interval: 100
-        selected: false
-        ssl_verify: true
-        timeout:
-          connect: 10
-          read: 30
-          write: 10
-        title: 发送第1段文本
-        type: http-request
-        url: '{{#code_send_1.api_url#}}'
-      height: 95
-      id: http_send_1
-      position:
-        x: 3138
-        y: 330.53333333333336
-      positionAbsolute:
-        x: 3138
-        y: 330.53333333333336
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        cases:
-        - case_id: 'true'
-          conditions:
-          - comparison_operator: is
-            value: 'true'
-            variable_selector:
-            - code_parse_agent
-            - has2
-          id: 'true'
-          logical_operator: and
-        selected: false
-        title: 第2段文本需要发送？
-        type: if-else
-      height: 148
-      id: if_has_msg2
-      position:
-        x: 3500
-        y: 360.70000000000005
-      positionAbsolute:
-        x: 3500
-        y: 360.70000000000005
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        code: "import json\n\n\ndef main(msg: str, chat_id: str, robotId: str, apiBaseUrl: str):\n    \"\"\"构建发送文本消息的 API 请求（type=203）。\"\"\"\n    return {\n        \"api_url\": f\"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}\"\
-          ,\n        \"api_body\": json.dumps({\n            \"socketType\": 2,\n            \"list\": [{\"type\": 203, \"titleList\": [chat_id], \"receivedContent\": msg}],\n        }, ensure_ascii=False),\n\
-          \    }\n"
-        code_language: python3
-        desc: ''
-        isInIteration: false
-        isInLoop: false
-        outputs:
-          api_body:
-            children: null
-            type: string
-          api_url:
-            children: null
-            type: string
-        selected: false
-        title: 构建第2段文本回复
-        type: code
-        variables:
+          - code_parse_convert
+          - msg1
+          value_type: string
+          variable: c_msg1
         - value_selector:
-          - code_parse_agent
+          - code_parse_convert
           - msg2
           value_type: string
-          variable: msg
+          variable: c_msg2
         - value_selector:
-          - code_validate
-          - chat_id
-          variable: chat_id
-        - value_selector:
-          - env
-          - WT_ROBOT_ID
-          variable: robotId
-        - value_selector:
-          - env
-          - WT_API_BASE_URL
-          variable: apiBaseUrl
-      height: 52
-      id: code_send_2
-      position:
-        x: 3862
-        y: 385.2166666666667
-      positionAbsolute:
-        x: 3862
-        y: 385.2166666666667
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        authorization:
-          type: no-auth
-        body:
-          data:
-          - type: text
-            value: '{{#code_send_2.api_body#}}'
-          type: json
-        headers: 'Content-Type: application/json'
-        method: post
-        params: ''
-        retry_config:
-          max_retries: 0
-          retry_enabled: false
-          retry_interval: 100
-        selected: false
-        ssl_verify: true
-        timeout:
-          connect: 10
-          read: 30
-          write: 10
-        title: 发送第2段文本
-        type: http-request
-        url: '{{#code_send_2.api_url#}}'
-      height: 95
-      id: http_send_2
-      position:
-        x: 4204
-        y: 372.3833333333334
-      positionAbsolute:
-        x: 4204
-        y: 372.3833333333334
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        cases:
-        - case_id: 'true'
-          conditions:
-          - comparison_operator: is
-            value: 'true'
-            variable_selector:
-            - code_parse_agent
-            - has3
-          id: 'true'
-          logical_operator: and
-        selected: false
-        title: 第3段文本需要发送？
-        type: if-else
-      height: 148
-      id: if_has_msg3
-      position:
-        x: 4566
-        y: 402.55000000000007
-      positionAbsolute:
-        x: 4566
-        y: 402.55000000000007
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        code: "import json\n\n\ndef main(msg: str, chat_id: str, robotId: str, apiBaseUrl: str):\n    \"\"\"构建发送文本消息的 API 请求（type=203）。\"\"\"\n    return {\n        \"api_url\": f\"{apiBaseUrl.rstrip('/')}/wework/sendRawMessage?robotId={robotId}\"\
-          ,\n        \"api_body\": json.dumps({\n            \"socketType\": 2,\n            \"list\": [{\"type\": 203, \"titleList\": [chat_id], \"receivedContent\": msg}],\n        }, ensure_ascii=False),\n\
-          \    }\n"
-        code_language: python3
-        desc: ''
-        isInIteration: false
-        isInLoop: false
-        outputs:
-          api_body:
-            children: null
-            type: string
-          api_url:
-            children: null
-            type: string
-        selected: false
-        title: 构建第3段文本回复
-        type: code
-        variables:
-        - value_selector:
-          - code_parse_agent
+          - code_parse_convert
           - msg3
           value_type: string
-          variable: msg
+          variable: c_msg3
         - value_selector:
-          - code_validate
-          - chat_id
-          variable: chat_id
+          - code_parse_convert
+          - send_file
+          value_type: boolean
+          variable: c_send_file
         - value_selector:
-          - env
-          - WT_ROBOT_ID
-          variable: robotId
+          - code_parse_convert
+          - stage
+          value_type: number
+          variable: c_stage
         - value_selector:
-          - env
-          - WT_API_BASE_URL
-          variable: apiBaseUrl
+          - code_parse_sign
+          - msg1
+          value_type: string
+          variable: s_msg1
+        - value_selector:
+          - code_parse_sign
+          - msg2
+          value_type: string
+          variable: s_msg2
+        - value_selector:
+          - code_parse_sign
+          - msg3
+          value_type: string
+          variable: s_msg3
+        - value_selector:
+          - code_parse_sign
+          - send_file
+          value_type: boolean
+          variable: s_send_file
+        - value_selector:
+          - code_parse_sign
+          - stage
+          value_type: number
+          variable: s_stage
+        - value_selector:
+          - code_parse_deliver
+          - msg1
+          value_type: string
+          variable: d_msg1
+        - value_selector:
+          - code_parse_deliver
+          - msg2
+          value_type: string
+          variable: d_msg2
+        - value_selector:
+          - code_parse_deliver
+          - msg3
+          value_type: string
+          variable: d_msg3
+        - value_selector:
+          - code_parse_deliver
+          - send_file
+          value_type: boolean
+          variable: d_send_file
+        - value_selector:
+          - code_parse_deliver
+          - stage
+          value_type: number
+          variable: d_stage
       height: 52
-      id: code_send_3
+      id: code_merge
       position:
-        x: 4928
-        y: 427.0666666666667
+        x: 2112
+        y: 583.7424242424241
       positionAbsolute:
-        x: 4928
-        y: 427.0666666666667
-      selected: false
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        authorization:
-          type: no-auth
-        body:
-          data:
-          - type: text
-            value: '{{#code_send_3.api_body#}}'
-          type: json
-        headers: 'Content-Type: application/json'
-        method: post
-        params: ''
-        retry_config:
-          max_retries: 0
-          retry_enabled: false
-          retry_interval: 100
-        selected: false
-        ssl_verify: true
-        timeout:
-          connect: 10
-          read: 30
-          write: 10
-        title: 发送第3段文本
-        type: http-request
-        url: '{{#code_send_3.api_url#}}'
-      height: 95
-      id: http_send_3
-      position:
-        x: 5270
-        y: 414.2333333333334
-      positionAbsolute:
-        x: 5270
-        y: 414.2333333333334
+        x: 2112
+        y: 583.7424242424241
       selected: false
       type: custom
       width: 242
@@ -1076,12 +2048,103 @@ workflow:
         isInIteration: false
         isInLoop: false
         sourceType: code
-        targetType: agent
-      id: e_validate_agent
+        targetType: if-else
+      id: e_validate_router
       selected: false
       source: code_validate
       sourceHandle: source
-      target: agent_cs
+      target: if_stage_router
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: e_r1_convert
+      selected: false
+      source: if_stage_router
+      sourceHandle: stage1
+      target: agent_convert
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: e_r2_sign
+      selected: false
+      source: if_stage_router
+      sourceHandle: stage2
+      target: agent_sign
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: e_r3_deliver
+      selected: false
+      source: if_stage_router
+      sourceHandle: stage3
+      target: agent_deliver
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: e_r4_deliver
+      selected: false
+      source: if_stage_router
+      sourceHandle: stage4
+      target: agent_deliver
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: e_r0_trigger
+      selected: false
+      source: if_stage_router
+      sourceHandle: 'false'
+      target: if_stage0_trigger
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: e_t_phase1
+      selected: false
+      source: if_stage0_trigger
+      sourceHandle: 'true'
+      target: code_phase1
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: e_t_gate
+      selected: false
+      source: if_stage0_trigger
+      sourceHandle: 'false'
+      target: agent_gate
       targetHandle: target
       type: custom
       zIndex: 0
@@ -1090,11 +2153,50 @@ workflow:
         isInLoop: false
         sourceType: agent
         targetType: code
-      id: e_agent_parse
+      id: e_gate_parse
       selected: false
-      source: agent_cs
+      source: agent_gate
       sourceHandle: source
-      target: code_parse_agent
+      target: code_parse_gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: code
+      id: e_convert_parse
+      selected: false
+      source: agent_convert
+      sourceHandle: source
+      target: code_parse_convert
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: code
+      id: e_sign_parse
+      selected: false
+      source: agent_sign
+      sourceHandle: source
+      target: code_parse_sign
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: agent
+        targetType: code
+      id: e_deliver_parse
+      selected: false
+      source: agent_deliver
+      sourceHandle: source
+      target: code_parse_deliver
       targetHandle: target
       type: custom
       zIndex: 0
@@ -1103,9 +2205,87 @@ workflow:
         isInLoop: false
         sourceType: code
         targetType: code
-      id: e_parse_buildfile
+      id: e_phase1_merge
       selected: false
-      source: code_parse_agent
+      source: code_phase1
+      sourceHandle: source
+      target: code_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_gate_merge
+      selected: false
+      source: code_parse_gate
+      sourceHandle: source
+      target: code_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_convert_merge
+      selected: false
+      source: code_parse_convert
+      sourceHandle: source
+      target: code_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_sign_merge
+      selected: false
+      source: code_parse_sign
+      sourceHandle: source
+      target: code_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_deliver_merge
+      selected: false
+      source: code_parse_deliver
+      sourceHandle: source
+      target: code_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_merge_final
+      selected: false
+      source: code_merge
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: e_merge_file
+      selected: false
+      source: code_merge
       sourceHandle: source
       target: code_build_file
       targetHandle: target
@@ -1140,24 +2320,11 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        sourceType: if-else
+        sourceType: code
         targetType: if-else
-      id: e_needapi_false_next
+      id: e_merge_m1
       selected: false
-      source: if_need_api
-      sourceHandle: 'false'
-      target: if_has_msg1
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: http-request
-        targetType: if-else
-      id: e_httpfile_next
-      selected: false
-      source: http_send_file
+      source: code_merge
       sourceHandle: source
       target: if_has_msg1
       targetHandle: target
@@ -1179,19 +2346,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        sourceType: if-else
-        targetType: if-else
-      id: e_m1_false_m2
-      selected: false
-      source: if_has_msg1
-      sourceHandle: 'false'
-      target: if_has_msg2
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
         sourceType: code
         targetType: http-request
       id: e_send1_http1
@@ -1199,6 +2353,19 @@ workflow:
       source: code_send_1
       sourceHandle: source
       target: http_send_1
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: e_m1_false_m2
+      selected: false
+      source: if_has_msg1
+      sourceHandle: 'false'
+      target: if_has_msg2
       targetHandle: target
       type: custom
       zIndex: 0
@@ -1231,19 +2398,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        sourceType: if-else
-        targetType: if-else
-      id: e_m2_false_m3
-      selected: false
-      source: if_has_msg2
-      sourceHandle: 'false'
-      target: if_has_msg3
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
         sourceType: code
         targetType: http-request
       id: e_send2_http2
@@ -1251,6 +2405,19 @@ workflow:
       source: code_send_2
       sourceHandle: source
       target: http_send_2
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: e_m2_false_m3
+      selected: false
+      source: if_has_msg2
+      sourceHandle: 'false'
+      target: if_has_msg3
       targetHandle: target
       type: custom
       zIndex: 0
@@ -1283,19 +2450,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        sourceType: if-else
-        targetType: code
-      id: e_m3_false_final
-      selected: false
-      source: if_has_msg3
-      sourceHandle: 'false'
-      target: code_final_text
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
         sourceType: code
         targetType: http-request
       id: e_send3_http3
@@ -1303,19 +2457,6 @@ workflow:
       source: code_send_3
       sourceHandle: source
       target: http_send_3
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        sourceType: http-request
-        targetType: code
-      id: e_http3_final
-      selected: false
-      source: http_send_3
-      sourceHandle: source
-      target: code_final_text
       targetHandle: target
       type: custom
       zIndex: 0
@@ -1333,7 +2474,7 @@ workflow:
       type: custom
       zIndex: 0
     viewport:
-      x: -2894.5
-      y: 158
-      zoom: 0.7
+      x: 0
+      y: 0
+      zoom: 0.5
   rag_pipeline_variables: []

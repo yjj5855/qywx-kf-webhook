@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     # 但所有消息仍会入库）；处理期间到达的消息串行排队不并发。0=关闭防抖（仍串行）。
     debounce_seconds: float = 1.0
 
+    # 管理接口密钥（敏感，配置在 .env 文件: WT_ADMIN_API_KEY）
+    # 所有 /api/* 管理接口（群绑定 / workflow 配置 / 对话记忆等）都要求请求头
+    # X-API-Key 等于该值；未配置时管理接口整体禁用（fail-closed）。
+    # /callback（WorkTool 回调）、/retrieval（语雀外部知识库，用 WT_YUQUE_EXTERNAL_KEY 鉴权）、
+    # /health 不受此限制。
+    admin_api_key: str = ""
+
     # ---- Dify 工作流（回调 → 整理参数 → /v1/workflows/run）----
     dify_base_url: str = "http://192.168.31.204"        # Dify 服务地址，如 http://192.168.31.204
     # 注意：Dify 工作流应用的 API Key 不再放配置文件 —— 它跟着 workflow appid 走，

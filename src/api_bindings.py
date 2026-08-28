@@ -11,8 +11,9 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from src.auth import require_admin
 from src.binding import BindingStore, normalize_company_ids
 from src.company_profile import sync_group_profile
 from src.config import settings
@@ -20,7 +21,7 @@ from src.models import BindingItem
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/bindings", tags=["bindings"])
+router = APIRouter(prefix="/bindings", tags=["bindings"], dependencies=[Depends(require_admin)])
 
 _store_obj: BindingStore | None = None
 

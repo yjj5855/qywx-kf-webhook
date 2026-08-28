@@ -8,9 +8,10 @@ from __future__ import annotations
 import logging
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from src.auth import require_admin
 from src.binding import BindingStore
 from src.config import settings
 from src.exporter import export_once
@@ -19,7 +20,7 @@ from src.memory import ChatMemoryStore, format_time_cn
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/messages", tags=["memory"])
+router = APIRouter(prefix="/messages", tags=["memory"], dependencies=[Depends(require_admin)])
 
 _store: ChatMemoryStore | None = None
 
@@ -135,3 +136,39 @@ async def sync_all():
         logger.exception("手动知识库同步失败")
         return {"code": -1, "message": "同步失败，详见日志"}
     return {"code": 0, "message": "ok", "data": results}
+
+
+class SetStageRequest(BaseModel):
+    session_id: str           # 会话标识，格式 roomType:chat_id，如 "1:测试二群"（外部后台按群名拼接）
+    stage: int                # 服务阶段 0~4（0未开始 1初次触达 2转化签约 3签约后交付 4长期服务）
+
+
+@router.post("/stage")
+async def set_session_stage(req: SetStageRequest):
+    """外部后台设置/重置会话服务阶段（如客服在其他后台完成初次触达后置 stage=1）。
+
+    用途：0→1 等阶段可能不在机器人回调链路内完成（介绍话术由人工在其他后台发送），
+    后台发完介绍后调用本接口把会话 stage 置为对应值，机器人后续按该阶段响应，
+    避免重复发送第一阶段介绍。
+    """
+    if not req.session_id:
+        return {"code": -1, "message": "缺少 session_id"}
+    store = _get_store()
+    store.set_stage(req.session_id, req.stage)
+    return {
+        "code": 0,
+        "message": "ok",
+        "data": {"session_id": req.session_id, "stage": store.get_stage(req.session_id)},
+    }
+
+
+@router.get("/stage")
+async def get_session_stage(session_id: str = ""):
+    """查询会话当前服务阶段。"""
+    if not session_id:
+        return {"code": -1, "message": "缺少 session_id"}
+    return {
+        "code": 0,
+        "message": "ok",
+        "data": {"session_id": session_id, "stage": _get_store().get_stage(session_id)},
+    }
