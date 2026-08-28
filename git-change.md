@@ -4,6 +4,21 @@
 
 ## [开发中]
 
+### 区分「客服服务阶段」与「开户办理进度」（线上已发布）
+- 三个业务 Agent（答疑/签约/交付）指令新增"两个进度要分清"说明：
+  ① 客服服务阶段（stage 0~4）是内部状态，只用于决定话术/流程，不向客户提及、不当作开户进度回答；
+  ② 开户办理进度必须调 getOpenAccountDetail（id=【开户ID】）按接口返回内容回答
+- 查询触发措辞限定为【开户办理进度】（开户/开通办到哪一步、开户进度、开户信息）
+- dify/开户办理-主流程.yml 已同步
+
+### 开户ID贯通：群绑定字段 → 工作流入参 → Agent 工具传参（线上已发布）
+- group_bindings 新增 open_account_id 列（迁移自动补列）：src/binding.py 增 update_open_account_id、_row_to_dict/upsert/迁移支持；BindingItem 增 open_account_id；POST /api/bindings 支持
+- src/init_bindings.py 读取 CSV「开户ID」列回填（CSV 空值保留库内已有值）
+- src/handler.py：_resolve_open_account_id 按群名取开户ID，_build_inputs 注入 openAccountId
+- 工作流（线上已发布）：start 新增 openAccountId 输入；3 个业务 Agent query 注入【开户ID】；已绑定的真实工具 getOpenAccountDetail(id) 的调用说明更新为「id 用【开户ID】，未配置时回复开户ID未登记」（原有占位工具 queryAccountOpeningInfo/submitWorkOrder 已被替换为真实绑定工具）
+- 验证：群配置 OA-2026-001 → openAccountId 注入；未配置/私聊 → 空；update_open_account_id 生效
+- dify/开户办理-主流程.yml 已同步；部署需重启回调服务（表迁移 + handler 注入）
+
 ### 管理接口鉴权（/api/* 需 X-API-Key，fail-closed）
 - 风险：群绑定 / workflow 配置 / 对话记忆等管理接口此前完全开放，任何人可改 workflow_app_id、看/改 app key
 - 新增 src/auth.py：require_admin 依赖，所有 /api/* 管理接口（bindings / workflows / messages）请求头需 `X-API-Key: <WT_ADMIN_API_KEY>`

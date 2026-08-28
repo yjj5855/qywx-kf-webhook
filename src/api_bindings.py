@@ -56,6 +56,7 @@ async def upsert_binding(item: BindingItem):
         group_name=item.group_name,
         company_ids=normalize_company_ids(item.company_ids),  # 任意分隔符归一化为顿号
         workflow_app_id=item.workflow_app_id,
+        open_account_id=item.open_account_id,
         memory_dataset_id=item.memory_dataset_id,
     )
     # 绑定变更后尽量同步最新档案到群知识库；sync_group_profile 内部已兜底异常，

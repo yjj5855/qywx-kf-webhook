@@ -63,4 +63,5 @@ class BindingItem(BaseModel):
     group_name: str = ""         # 群名称
     company_ids: str = ""        # 公司ID列表，顿号分隔（兼容逗号/分号），如 "1001、1002"
     workflow_app_id: str = ""    # 预留：Dify 客服 Workflow 应用 ID
+    open_account_id: str = ""    # 开户 ID：通过开户信息查询 API 查该企业开户进度/信息用
     memory_dataset_id: str = ""  # 群专属 Dify 知识库 ID（群聊天记录导出用）

@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS group_bindings (
     group_name        TEXT NOT NULL DEFAULT '',
     company_ids       TEXT NOT NULL DEFAULT '',
     workflow_app_id   TEXT NOT NULL DEFAULT '',
+    open_account_id   TEXT NOT NULL DEFAULT '',
     memory_dataset_id TEXT NOT NULL DEFAULT '',
     kb_last_export_id INTEGER NOT NULL DEFAULT 0,
     status            INTEGER NOT NULL DEFAULT 1,
@@ -34,7 +35,7 @@ CREATE TABLE IF NOT EXISTS group_bindings (
 
 _COLUMNS = (
     "id, platform, group_id, group_name, company_ids, "
-    "workflow_app_id, memory_dataset_id, kb_last_export_id, status, created_at, updated_at"
+    "workflow_app_id, open_account_id, memory_dataset_id, kb_last_export_id, status, created_at, updated_at"
 )
 
 
@@ -70,6 +71,10 @@ class BindingStore:
             conn.execute(
                 "ALTER TABLE group_bindings ADD COLUMN kb_last_export_id INTEGER NOT NULL DEFAULT 0"
             )
+        if "open_account_id" not in cols:
+            conn.execute(
+                "ALTER TABLE group_bindings ADD COLUMN open_account_id TEXT NOT NULL DEFAULT ''"
+            )
 
     @staticmethod
     def _row_to_dict(row) -> dict:
@@ -80,11 +85,12 @@ class BindingStore:
             "group_name": row[3],
             "company_ids": row[4],
             "workflow_app_id": row[5],
-            "memory_dataset_id": row[6],
-            "kb_last_export_id": row[7],
-            "status": row[8],
-            "created_at": row[9],
-            "updated_at": row[10],
+            "open_account_id": row[6],
+            "memory_dataset_id": row[7],
+            "kb_last_export_id": row[8],
+            "status": row[9],
+            "created_at": row[10],
+            "updated_at": row[11],
         }
 
     def get(self, platform: str, group_id: str) -> Optional[dict]:
@@ -139,6 +145,7 @@ class BindingStore:
         group_name: str = "",
         company_ids: str = "",
         workflow_app_id: str = "",
+        open_account_id: str = "",
         memory_dataset_id: str = "",
         status: int = 1,
     ) -> None:
@@ -147,17 +154,18 @@ class BindingStore:
             conn.execute(
                 f"""INSERT INTO group_bindings
                        (platform, group_id, group_name, company_ids, workflow_app_id,
-                        memory_dataset_id, status, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        open_account_id, memory_dataset_id, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(platform, group_id) DO UPDATE SET
                      group_name        = excluded.group_name,
                      company_ids       = excluded.company_ids,
                      workflow_app_id   = excluded.workflow_app_id,
+                     open_account_id   = excluded.open_account_id,
                      memory_dataset_id = excluded.memory_dataset_id,
                      status            = excluded.status,
                      updated_at        = excluded.updated_at""",
                 (platform, group_id, group_name, company_ids, workflow_app_id,
-                 memory_dataset_id, status, now, now),
+                 open_account_id, memory_dataset_id, status, now, now),
             )
             conn.commit()
 
@@ -214,6 +222,20 @@ class BindingStore:
             cur = conn.execute(
                 "UPDATE group_bindings SET workflow_app_id = ? WHERE platform = ? AND group_id = ?",
                 (workflow_app_id, platform, group_id),
+            )
+            conn.commit()
+        return cur.rowcount > 0
+
+    def update_open_account_id(self, platform: str, group_id: str, open_account_id: str) -> bool:
+        """回填群绑定的开户 ID（open_account_id 列）。
+
+        开户 ID 用于通过开户信息查询 API 查该企业开户进度/信息；
+        handler 按群名取该值注入工作流，Agent 调用「查询开户进度」等工具时传入。返回是否命中行。
+        """
+        with sqlite3.connect(self._db_path) as conn:
+            cur = conn.execute(
+                "UPDATE group_bindings SET open_account_id = ? WHERE platform = ? AND group_id = ?",
+                (open_account_id, platform, group_id),
             )
             conn.commit()
         return cur.rowcount > 0

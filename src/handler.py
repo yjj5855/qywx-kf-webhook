@@ -119,6 +119,19 @@ class DifyWorkflowHandler(MessageHandler):
             return ""
         return self._workflow_apps.get_api_key(app_id)
 
+    def _resolve_open_account_id(self, req: CallbackRequest) -> str:
+        """取该群绑定的开户 ID（group_bindings.open_account_id 列）。
+
+        开户 ID 用于通过开户信息查询 API 查该企业开户进度/信息，注入工作流后
+        Agent 调用「查询开户进度」等工具时传入；非群聊/未绑定返回空串。
+        """
+        if not req.is_group:
+            return ""
+        binding = self._bindings.get_by_group_name(self.PLATFORM, req.chat_id)
+        if binding is None:
+            return ""
+        return (binding.get("open_account_id") or "").strip()
+
     def _resolve_dataset_id(self, req: CallbackRequest) -> str:
         """按群名反查绑定，取该群的群记忆知识库 ID（memory_dataset_id）。
 
@@ -154,6 +167,8 @@ class DifyWorkflowHandler(MessageHandler):
             # 会话当前服务阶段（显式状态，0未开始 1初次触达 2转化签约 3签约后交付 4长期服务），
             # 注入工作流供 Agent 判断所处阶段；工作流结束节点输出 stage 回写（见 handle）
             "currentStage": self._memory.get_stage(req.session_id),
+            # 群绑定的开户 ID（开户信息查询 API 用，Agent 调用工具时传入）
+            "openAccountId": self._resolve_open_account_id(req),
             # 群绑定的公司 ID（顿号分隔），供主工作流内部路由/公司查询使用
             "companyIds": self._resolve_company_ids(req),
             # 群记忆知识库 ID，供 QA 子工作流动态检索群聊历史（未绑定为空）

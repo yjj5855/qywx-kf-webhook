@@ -67,6 +67,13 @@ def init_from_csv(csv_path: str | Path = CSV_DEFAULT) -> dict:
             if csv_workflow
             else (existing.get("workflow_app_id", "") if existing else "")
         )
+        # 开户ID：CSV 非空则回填，空则保留已有值
+        csv_open_id = (row.get("开户ID") or "").strip()
+        open_account_id = (
+            csv_open_id
+            if csv_open_id
+            else (existing.get("open_account_id", "") if existing else "")
+        )
         store.upsert(
             platform="wecom",
             group_id=group_id,
@@ -74,6 +81,7 @@ def init_from_csv(csv_path: str | Path = CSV_DEFAULT) -> dict:
             # 任意分隔符（CSV 常用 /）统一归一化为顿号
             company_ids=normalize_company_ids(company_ids),
             workflow_app_id=workflow_app_id,
+            open_account_id=open_account_id,
             # 知识库 / 导出游标 不在 CSV 中，保留已有值，避免误清
             memory_dataset_id=existing.get("memory_dataset_id", "") if existing else "",
             status=status,

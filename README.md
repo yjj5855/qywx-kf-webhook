@@ -206,8 +206,14 @@ flowchart LR
   `name`（应用名备注，如 客服-主流程 / 开户办理-主流程）、`api_key`（该应用 API Key，
   形如 `app-xxx`，Dify 应用「API 访问」页生成）。
   配置：`POST /api/workflows {"app_id": "xxx", "name": "开户办理-主流程", "api_key": "app-xxxx"}`
+- **群绑定表 `group_bindings.open_account_id`（开户 ID）**：该群企业的开户 ID，通过开户信息查询 API
+  （如 Dify 中的 `getOpenAccountDetail(id)`）查开户进度/信息。handler 按群名取该值注入工作流
+  `openAccountId` 输入 → Agent 调用「查询开户详情」工具时作为 `id` 传入（未配置时回复"开户ID未登记"）。
+  配置：`POST /api/bindings` 的 `open_account_id` 字段、`BindingStore.update_open_account_id`、
+  或 CSV「开户ID」列回填（`python -m src.init_bindings`，CSV 空值保留库内已有值）。
 - **开户办理-主流程**（`dify/开户办理-主流程.yml`）：接收与客服-主流程一致的参数
-  （spoken/receivedName/roomType/atMe/textType/recentContext/companyIds/datasetId 等），
+  （spoken/receivedName/roomType/atMe/textType/recentContext/companyIds/datasetId 等，另含
+  `currentStage` 会话服务阶段、`openAccountId` 开户 ID），
   门控 → 开户意图识别 → 多轮收集开户必填信息（企业名称/统一社会信用代码/法定代表人/
   经办人电话/开户类型）→ 信息齐全后通过 WorkTool API（type=218）发送开户材料文件，
   并内置回答开户流程/材料咨询；回复统一经 WorkTool 发送。
