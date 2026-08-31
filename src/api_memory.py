@@ -172,3 +172,16 @@ async def get_session_stage(session_id: str = ""):
         "message": "ok",
         "data": {"session_id": session_id, "stage": _get_store().get_stage(session_id)},
     }
+
+
+@router.get("/stages")
+async def list_session_stages(session_id: str = "", limit: int = 200, offset: int = 0):
+    """分页列出全部会话阶段（管理后台用），session_id 模糊搜索，按更新时间倒序。"""
+    limit = min(max(int(limit), 1), 1000)
+    offset = max(int(offset), 0)
+    items, total = _get_store().list_stages(session_id=session_id, limit=limit, offset=offset)
+    return {
+        "code": 0,
+        "message": "ok",
+        "data": {"total": total, "items": items, "limit": limit, "offset": offset},
+    }

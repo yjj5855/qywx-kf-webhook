@@ -150,7 +150,7 @@ async def list_documents(
     url = f"{base_url.rstrip('/')}/v1/datasets/{dataset_id}/documents"
     docs: list[dict] = []
     page = 1
-    async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
+    async with httpx.AsyncClient(timeout=timeout, trust_env=settings.httpx_trust_env) as client:
         while True:
             resp = await client.get(
                 url, params={"page": page, "limit": 100}, headers=_headers(api_key)
@@ -168,7 +168,7 @@ async def delete_document(
     base_url: str, api_key: str, dataset_id: str, document_id: str, timeout: float = 30.0
 ) -> dict:
     url = f"{base_url.rstrip('/')}/v1/datasets/{dataset_id}/documents/{document_id}"
-    async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
+    async with httpx.AsyncClient(timeout=timeout, trust_env=settings.httpx_trust_env) as client:
         resp = await client.delete(url, headers=_headers(api_key))
         resp.raise_for_status()
         try:

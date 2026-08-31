@@ -10,6 +10,8 @@ import logging
 
 import httpx
 
+from src.config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +46,7 @@ class DifyWorkflowClient:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self._timeout, trust_env=False) as client:
+            async with httpx.AsyncClient(timeout=self._timeout, trust_env=settings.httpx_trust_env) as client:
                 resp = await client.post(url, json=payload, headers=headers)
                 resp.raise_for_status()
                 data = resp.json()

@@ -204,7 +204,7 @@ workflow:
           required: false
           type: text-input
           variable: openAccountId
-      height: 447
+      height: 473
       id: start
       position:
         x: 0
@@ -422,7 +422,7 @@ workflow:
         type: code
         variables:
         - value_selector:
-          - code_merge
+          - code_final_link
           - send_file
           value_type: boolean
           variable: send_file
@@ -475,17 +475,17 @@ workflow:
         type: code
         variables:
         - value_selector:
-          - code_merge
+          - code_final_link
           - msg1
           value_type: string
           variable: msg1
         - value_selector:
-          - code_merge
+          - code_final_link
           - msg2
           value_type: string
           variable: msg2
         - value_selector:
-          - code_merge
+          - code_final_link
           - msg3
           value_type: string
           variable: msg3
@@ -505,27 +505,27 @@ workflow:
         outputs:
         - type: string
           value_selector:
-          - code_final_text
-          - final_text
+          - code_final_link
+          - msg1
           variable: final_text
         - type: number
           value_selector:
-          - code_merge
+          - code_final_link
           - stage
           variable: stage
         - type: string
           value_selector:
-          - code_merge
+          - code_final_link
           - msg1
           variable: msg1
         - type: string
           value_selector:
-          - code_merge
+          - code_final_link
           - msg2
           variable: msg2
         - type: string
           value_selector:
-          - code_merge
+          - code_final_link
           - msg3
           variable: msg3
         selected: false
@@ -550,7 +550,7 @@ workflow:
           - comparison_operator: is
             value: 'true'
             variable_selector:
-            - code_merge
+            - code_final_link
             - has1
           id: 'true'
           logical_operator: and
@@ -589,7 +589,7 @@ workflow:
         type: code
         variables:
         - value_selector:
-          - code_merge
+          - code_final_link
           - msg1
           value_type: string
           variable: msg
@@ -660,7 +660,7 @@ workflow:
           - comparison_operator: is
             value: 'true'
             variable_selector:
-            - code_merge
+            - code_final_link
             - has2
           id: 'true'
           logical_operator: and
@@ -699,7 +699,7 @@ workflow:
         type: code
         variables:
         - value_selector:
-          - code_merge
+          - code_final_link
           - msg2
           value_type: string
           variable: msg
@@ -770,7 +770,7 @@ workflow:
           - comparison_operator: is
             value: 'true'
             variable_selector:
-            - code_merge
+            - code_final_link
             - has3
           id: 'true'
           logical_operator: and
@@ -809,7 +809,7 @@ workflow:
         type: code
         variables:
         - value_selector:
-          - code_merge
+          - code_final_link
           - msg3
           value_type: string
           variable: msg
@@ -1128,95 +1128,14 @@ workflow:
         agent_parameters:
           instruction:
             type: constant
-            value: "# 角色\n\n你是班步一企通企业创业管家客服。客户已收到过服务介绍（阶段1=初次触达），现在进入答疑转化，目标是推进签约。\n\n# 答疑话术（按客户疑问分类）\n\n- 服务细节疑问：\"财税这边我们全程负责记账报税，小程序随时能看收支；人事从签合同、发工资到社保增减员全包；补贴会主动匹配您公司能申报的政策，材料我们整理。\"\n- 9个月免费福利疑问：\"\
-              只要是田野聚落入驻企业，9个月内财税服务，人事代理全部免费，没有隐形消费；9个月到期后您觉得好用，再交2500-3000元/年服务费，中途不想用随时可以停，没有捆绑，政策补贴部分，在申请完毕您拿到手之后，收取最高不超过百分之十五的服务费。\"\n- 专业度&风险顾虑：\"我们有20年企业服务经验，财税、人事都是专职顾问一对一跟进，系统还会自动预警发票、用工风险，规避经营踩坑。\"\
-              \n\n# 强化价值与引导签约\n\n客户认可时强化：\"您刚注册完公司，后续做账、发员工工资、申报补贴琐事特别多，交给我们托管您不用多头找代办，9个月免费试用刚好帮您度过初创最难的阶段，节省人力和资金成本。\"\n客户意向明确时引导：\"如果您这边认可这套服务，现在就可以走托管签约流程，今天开通权限，我们马上安排顾问对接您公司后续财税人事工作。\"\n\n# 阶段推进\n\
-              \n- 客户【明确表达办理意向】（签约/办理/可以开始/我要办理/好的办吧等）→ stage 输出 2\n- 简单回应（好的/嗯/知道了/收到等）→ 温和回应（\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"），stage 保持 1\n- 其余答疑 → stage 保持 1\n\n# 两个\"进度\"要分清（重要）\n\n1. 客服服务阶段（stage\
-              \ 0~4）：是机器人与客户服务流程的内部状态（初次触达→答疑转化→签约交付→长期服务），\n   只用于决定本机该用什么话术/流程。【不要】把它当作\"开户进度\"回答给客户，也不要向客户提及\"阶段1/2/3/4\"。\n2. 开户办理进度（外部接口）：客户问\"开户/开通办到哪一步了、开户进度、开户信息\"时，指企业开户业务的实际办理进度，\n   必须调用「查询开户详情」工具（getOpenAccountDetail，id\
-              \ 用【开户ID】）按接口返回内容回答，接口返回什么就答什么。\n\n# 工具\n\n需要人工/线下处理（预约、投诉、电话回访等）→ 调用「提交工单」；客户问【开户办理进度】（开户/开通办到哪一步、开户进度、开户信息）→ 调用「查询开户详情」工具（getOpenAccountDetail），参数 id 用【开户ID】；未配置开户ID时回复「开户ID未登记，请联系对接人获取」。\n\
-              \n# 输出（严格 JSON）\n\n{\"reply_text\": \"第一条文本\", \"messages\": [\"第一条\", \"第二条\", \"第三条\"], \"send_file\": false, \"stage\": 1或2}\n"
-          model:
-            type: constant
-            value:
-              completion_params:
-                temperature: 0.3
-              mode: chat
-              model: deepseek-v4-flash
-              model_type: llm
-              provider: langgenius/deepseek/deepseek
-              type: model-selector
-          query:
-            type: constant
-            value: '【历史对话】
-
-              {{#start.recentContext#}}
-
-
-              【当前消息】
-
-              {{#start.receivedName#}}:{{#start.spoken#}}
-
-
-              【是否被@】{{#code_validate.at_me#}}（true=被@）
-
-              【会话场景】{{#code_validate.scene#}}
-
-              【群绑定的公司ID】{{#start.companyIds#}}
-
-              【开户ID】{{#start.openAccountId#}}（空=未配置；查询开户进度时优先用此ID）
-
-              【当前服务阶段】{{#start.currentStage#}}'
-          tools:
-            type: constant
-            value:
-            - provider_name: e6ac64f9-ca40-44c9-9ae7-5fa307f8a3b0
-              provider_show_name: isp 开户接口
-              plugin_id: null
-              tool_name: getOpenAccountDetail
-              tool_label: getOpenAccountDetail
-              tool_description: 根据开户单主键 id 查询开户详情，返回联系人信息、开户申请信息（openAccApply）、 企业文件、微信/对公支付信息、一企通线上签署信息等完整数据。
-              settings: {}
-              parameters:
-                id:
-                  auto: 1
-                  value: null
-              enabled: true
-              extra:
-                description: 根据开户单主键 id 查询开户详情，返回联系人信息、开户申请信息（openAccApply）、 企业文件、微信/对公支付信息、一企通线上签署信息等完整数据。
-              type: api
-        agent_strategy_label: FunctionCalling
-        agent_strategy_name: function_calling
-        agent_strategy_provider_name: langgenius/agent/agent
-        meta:
-          minimum_dify_version: 1.7.0
-          version: 0.0.2
-        output_schema: {}
-        plugin_unique_identifier: langgenius/agent:0.0.42@7b26b1157dae5e2e949731d352cb97dad0897198563dff9151f8d9531e0d26f7
-        selected: true
-        title: 答疑转化Agent(阶段1)
-        tool_node_version: '2'
-        type: agent
-      height: 188
-      id: agent_convert
-      position:
-        x: 1046
-        y: 153.12878787878788
-      positionAbsolute:
-        x: 1046
-        y: 153.12878787878788
-      selected: true
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        agent_parameters:
-          instruction:
-            type: constant
-            value: "# 角色\n\n你是班步一企通企业创业管家客服。客户已确认办理（阶段2），进入签约交付环节，重点是收集企业基础资料。\n\n# 流程\n\n1. 收集企业基础资料（多轮，一次追问一项，结合【历史对话】保留已收集项）：\n   营业执照、法人信息、银行账户相关资料。\n   开场话术：\"X总，麻烦您提供一下公司营业执照、法人信息、银行账户相关资料，我们录入系统开通平台权限。\"\
-              \n2. 资料齐全 → send_file=true，回复\"已为您发送签约/开通材料，请注意查收\"，stage 输出 3。\n3. 客户表示不办了 → 回复取消确认，stage 保持 2。\n\n# 注意\n\n- 客户只是\"好的/嗯/知道了\"等简单回应 → 温和回应，不重复要资料、不推进（stage 保持 2）。\n- 不要编造资料已收集。\n\n# 两个\"进度\"\
-              要分清（重要）\n\n1. 客服服务阶段（stage 0~4）：是机器人与客户服务流程的内部状态（初次触达→答疑转化→签约交付→长期服务），\n   只用于决定本机该用什么话术/流程。【不要】把它当作\"开户进度\"回答给客户，也不要向客户提及\"阶段1/2/3/4\"。\n2. 开户办理进度（外部接口）：客户问\"开户/开通办到哪一步了、开户进度、开户信息\"时，指企业开户业务的实际办理进度，\n\
-              \   必须调用「查询开户详情」工具（getOpenAccountDetail，id 用【开户ID】）按接口返回内容回答，接口返回什么就答什么。\n\n# 工具\n\n需要人工/线下（材料线下递交、预约等）→ 调用「提交工单」；客户问【开户办理进度】（开户/开通办到哪一步、开户进度、开户信息）→ 调用「查询开户详情」工具（getOpenAccountDetail），参数 id\
-              \ 用【开户ID】；未配置开户ID时回复「开户ID未登记，请联系对接人获取」。\n\n# 输出（严格 JSON）\n\n{\"reply_text\": \"第一条文本\", \"messages\": [\"第一条\"], \"send_file\": true/false, \"stage\": 2或3}\n"
+            value: "# 角色\n\n你是班步一企通企业创业管家客服。客户已收到过服务介绍（阶段1=初次触达），现在进入答疑转化，目标是推进签约。\n\n# 答疑话术（按客户疑问分类）\n\n- 服务细节疑问：\"财税这边我们全程负责记账报税，小程序随时能看收支；人事从签合同、发工资到社保增减员全包；补贴会主动匹配您公司能申报的政策，材料我们整理。\"\n- 9个月免费福利疑问：先调用「查询开户详情」工具（getOpenAccountDetail，id=【开户ID】）确认该企业的\
+              \ distName；\n  仅当 distName == \"田野聚落\" 时才发送以下话术：\"只要是田野聚落入驻企业，9个月内财税服务，人事代理全部免费，没有隐形消费；9个月到期后您觉得好用，再交2500-3000元/年服务费，中途不想用随时可以停，没有捆绑，政策补贴部分，在申请完毕您拿到手之后，收取最高不超过百分之十五的服务费。\"\n  否则（distName 非\"\
+              田野聚落\"，或开户ID未配置/查询不到）按通用口径回答（如\"我们提供财税、人事托管服务，服务费按年收取\"），【不要】发送 9 个月免费话术。\n- 专业度&风险顾虑：\"我们有20年企业服务经验，财税、人事都是专职顾问一对一跟进，系统还会自动预警发票、用工风险，规避经营踩坑。\"\n\n# 强化价值与引导签约\n\n客户认可时强化：\"您刚注册完公司，后续做账、发员工工资、申报补贴琐事特别多，交给我们托管您不用多头找代办，9个月免费试用刚好帮您度过初创最难的阶段，节省人力和资金成本。\"\
+              \n客户意向明确时引导：\"如果您这边认可这套服务，现在就可以走托管签约流程，今天开通权限，我们马上安排顾问对接您公司后续财税人事工作。\"\n\n# 阶段推进\n\n- 客户【明确表达办理意向】（签约/办理/可以开始/我要办理/好的办吧等）→ stage 输出 2\n- 简单回应（好的/嗯/知道了/收到等）→ 温和回应（\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"\
+              ），stage 保持 1\n- 其余答疑 → stage 保持 1\n\n# 两个\"进度\"要分清（重要）\n\n1. 客服服务阶段（stage 0~4）：是机器人与客户服务流程的内部状态（初次触达→答疑转化→签约交付→长期服务），\n   只用于决定本机该用什么话术/流程。【不要】把它当作\"开户进度\"回答给客户，也不要向客户提及\"阶段1/2/3/4\"。\n2.\
+              \ 开户办理进度（外部接口）：客户问\"开户/开通办到哪一步了、开户进度、开户信息\"时，指企业开户业务的实际办理进度，\n   必须调用「查询开户详情」工具（getOpenAccountDetail，id 用【开户ID】）按接口返回内容回答，接口返回什么就答什么。\n\n# 工具\n\n需要人工/线下处理（预约、投诉、电话回访等）→ 调用「提交工单」；客户问【开户办理进度】（开户/开通办到哪一步、开户进度、开户信息）→\
+              \ 调用「查询开户详情」工具（getOpenAccountDetail），参数 id 用【开户ID】；未配置开户ID时回复「开户ID未登记，请联系对接人获取」。\n\n# 输出（严格 JSON）\n\n{\"reply_text\": \"第一条文本\", \"messages\": [\"第一条\", \"第二条\", \"第三条\"], \"send_file\": false,\
+              \ \"stage\": 1或2}\n"
           model:
             type: constant
             value:
@@ -1275,6 +1194,91 @@ workflow:
         output_schema: {}
         plugin_unique_identifier: langgenius/agent:0.0.42@7b26b1157dae5e2e949731d352cb97dad0897198563dff9151f8d9531e0d26f7
         selected: false
+        title: 答疑转化Agent(阶段1)
+        tool_node_version: '2'
+        type: agent
+      height: 188
+      id: agent_convert
+      position:
+        x: 1046
+        y: 153.12878787878788
+      positionAbsolute:
+        x: 1046
+        y: 153.12878787878788
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: "# 角色\n\n你是班步一企通企业创业管家客服。客户已确认办理（阶段2），进入签约交付环节，重点是收集企业基础资料。\n\n# 流程\n\n1. 收集企业基础资料（多轮，一次追问一项，结合【历史对话】保留已收集项）：\n   营业执照、法人信息、银行账户相关资料。\n   开场话术：\"X总，麻烦您提供一下公司营业执照、法人信息、银行账户相关资料，我们录入系统开通平台权限。\"\
+              \n2. 资料齐全 → 调用「查询开户详情」工具（getOpenAccountDetail，id=【开户ID】）获取分销商ID distUuid，构造签约材料链接 material_url（链接末尾追加 ?uuid=【开户ID】）：\n   - 有 distUuid → material_url = \"https://www.ibanbu.com/YQT/qyfwwtd-{distUuid}.html?uuid={开户ID}\"\
+              （工作流会自动检查该链接，不存在则降级为默认链接）\n   - 无 distUuid → material_url = \"https://www.ibanbu.com/YQT/qyfwwtd.html?uuid={开户ID}\"\n   messages 中需包含一条带该链接的文本（如\"您的签约材料请查看：{material_url}\"）；\n   send_file\
+              \ 恒为 false（改为发送链接文本，不再发文件消息）；【stage 保持 2】——只发材料不等于进入交付。\n3. 客户表示不办了 → 回复取消确认，stage 保持 2。\n\n# 阶段推进（重要）\n\n- 资料齐全并发送委托单链接后，阶段【保持 2】：发链接只是材料送达，签约后交付（开通后台、顾问对接、每月跟进）尚未完成。\n- 客户明确确认材料/要求继续交付（如\"\
+              材料收到\"\"可以继续\"\"开通后台吧\"\"安排顾问吧\"）→ 回复确认并进入交付，stage 输出 3。\n- 客户只是\"好的/嗯/知道了\"等简单回应 → 温和回应，不重复要资料、不推进（stage 保持 2）。\n\n# 注意\n\n- 不要编造资料已收集。\n\n# 两个\"进度\"要分清（重要）\n\n1. 客服服务阶段（stage 0~4）：是机器人与客户服务流程的内部状态（初次触达→答疑转化→签约交付→长期服务），\n\
+              \   只用于决定本机该用什么话术/流程。【不要】把它当作\"开户进度\"回答给客户，也不要向客户提及\"阶段1/2/3/4\"。\n2. 开户办理进度（外部接口）：客户问\"开户/开通办到哪一步了、开户进度、开户信息\"时，指企业开户业务的实际办理进度，\n   必须调用「查询开户详情」工具（getOpenAccountDetail，id 用【开户ID】）按接口返回内容回答，接口返回什么就答什么。\n\
+              \n# 工具\n\n需要人工/线下（材料线下递交、预约等）→ 调用「提交工单」；客户问【开户办理进度】（开户/开通办到哪一步、开户进度、开户信息）→ 调用「查询开户详情」工具（getOpenAccountDetail），参数 id 用【开户ID】；未配置开户ID时回复「开户ID未登记，请联系对接人获取」。\n\n# 输出（严格 JSON）\n\n{\"reply_text\"\
+              : \"第一条文本\", \"messages\": [\"第一条（含签约材料链接）\"], \"send_file\": false, \"stage\": 2（发链接后保持2；客户确认交付时输出3）, \"material_url\": \"签约材料链接URL\"}\n"
+          model:
+            type: constant
+            value:
+              completion_params:
+                temperature: 0.3
+              mode: chat
+              model: deepseek-v4-flash
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '【历史对话】
+
+              {{#start.recentContext#}}
+
+
+              【当前消息】
+
+              {{#start.receivedName#}}:{{#start.spoken#}}
+
+
+              【是否被@】{{#code_validate.at_me#}}（true=被@）
+
+              【会话场景】{{#code_validate.scene#}}
+
+              【群绑定的公司ID】{{#start.companyIds#}}
+
+              【开户ID】{{#start.openAccountId#}}（空=未配置；查询开户进度时优先用此ID）
+
+              【当前服务阶段】{{#start.currentStage#}}'
+          tools:
+            type: constant
+            value:
+            - provider_name: e6ac64f9-ca40-44c9-9ae7-5fa307f8a3b0
+              provider_show_name: isp 开户接口
+              plugin_id: null
+              tool_name: getOpenAccountDetail
+              tool_label: getOpenAccountDetail
+              tool_description: 根据开户单主键 id 查询开户详情，返回联系人信息、开户申请信息（openAccApply）、 企业文件、微信/对公支付信息、一企通线上签署信息等完整数据。
+              settings: {}
+              parameters:
+                id:
+                  auto: 1
+                  value: null
+              enabled: true
+              extra:
+                description: 根据开户单主键 id 查询开户详情，返回联系人信息、开户申请信息（openAccApply）、 企业文件、微信/对公支付信息、一企通线上签署信息等完整数据。
+              type: api
+        agent_strategy_label: FunctionCalling
+        agent_strategy_name: function_calling
+        agent_strategy_provider_name: langgenius/agent/agent
+        meta:
+          minimum_dify_version: 1.7.0
+          version: 0.0.2
+        output_schema: {}
+        plugin_unique_identifier: langgenius/agent:0.0.42@7b26b1157dae5e2e949731d352cb97dad0897198563dff9151f8d9531e0d26f7
+        selected: true
         title: 签约交付Agent(阶段2)
         tool_node_version: '2'
         type: agent
@@ -1286,7 +1290,7 @@ workflow:
       positionAbsolute:
         x: 1388
         y: 344.1287878787879
-      selected: false
+      selected: true
       type: custom
       width: 242
       zIndex: 0
@@ -1382,12 +1386,13 @@ workflow:
           \        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\", \"\", text, flags=re.S | re.I).strip()\n    data = None\n    try:\n        data\
           \ = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw, re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n\
           \            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data, dict):\n        return {**empty, \"reply_text\": raw, \"msg1\": raw, \"has1\"\
-          : bool(raw.strip())}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"stage\", stage),\
-          \ stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip() for x\
-          \ in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
-          \ \"stage\": out_stage}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 = parts[0] if len(parts)\
-          \ > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file,\
-          \ \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3)}\n"
+          : bool(raw.strip()), \"material_url\": \"\"}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"\
+          stage\", stage), stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip()\
+          \ for x in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
+          \ \"stage\": out_stage, \"material_url\": \"\"}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 =\
+          \ parts[0] if len(parts) > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    material_url = str(data.get(\"material_url\") or \"\"\
+          ).strip()\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file, \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\"\
+          : bool(m1), \"has2\": bool(m2), \"has3\": bool(m3), \"material_url\": material_url}\n"
         code_language: python3
         desc: ''
         isInIteration: false
@@ -1423,6 +1428,9 @@ workflow:
           has3:
             children: null
             type: boolean
+          material_url:
+            children: null
+            type: string
         selected: false
         title: 解析门控Agent
         type: code
@@ -1458,12 +1466,13 @@ workflow:
           \        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\", \"\", text, flags=re.S | re.I).strip()\n    data = None\n    try:\n        data\
           \ = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw, re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n\
           \            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data, dict):\n        return {**empty, \"reply_text\": raw, \"msg1\": raw, \"has1\"\
-          : bool(raw.strip())}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"stage\", stage),\
-          \ stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip() for x\
-          \ in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
-          \ \"stage\": out_stage}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 = parts[0] if len(parts)\
-          \ > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file,\
-          \ \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3)}\n"
+          : bool(raw.strip()), \"material_url\": \"\"}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"\
+          stage\", stage), stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip()\
+          \ for x in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
+          \ \"stage\": out_stage, \"material_url\": \"\"}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 =\
+          \ parts[0] if len(parts) > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    material_url = str(data.get(\"material_url\") or \"\"\
+          ).strip()\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file, \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\"\
+          : bool(m1), \"has2\": bool(m2), \"has3\": bool(m3), \"material_url\": material_url}\n"
         code_language: python3
         desc: ''
         isInIteration: false
@@ -1499,6 +1508,9 @@ workflow:
           has3:
             children: null
             type: boolean
+          material_url:
+            children: null
+            type: string
         selected: false
         title: 解析答疑Agent
         type: code
@@ -1534,12 +1546,13 @@ workflow:
           \        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\", \"\", text, flags=re.S | re.I).strip()\n    data = None\n    try:\n        data\
           \ = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw, re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n\
           \            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data, dict):\n        return {**empty, \"reply_text\": raw, \"msg1\": raw, \"has1\"\
-          : bool(raw.strip())}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"stage\", stage),\
-          \ stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip() for x\
-          \ in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
-          \ \"stage\": out_stage}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 = parts[0] if len(parts)\
-          \ > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file,\
-          \ \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3)}\n"
+          : bool(raw.strip()), \"material_url\": \"\"}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"\
+          stage\", stage), stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip()\
+          \ for x in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
+          \ \"stage\": out_stage, \"material_url\": \"\"}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 =\
+          \ parts[0] if len(parts) > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    material_url = str(data.get(\"material_url\") or \"\"\
+          ).strip()\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file, \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\"\
+          : bool(m1), \"has2\": bool(m2), \"has3\": bool(m3), \"material_url\": material_url}\n"
         code_language: python3
         desc: ''
         isInIteration: false
@@ -1575,6 +1588,9 @@ workflow:
           has3:
             children: null
             type: boolean
+          material_url:
+            children: null
+            type: string
         selected: false
         title: 解析签约Agent
         type: code
@@ -1610,12 +1626,13 @@ workflow:
           \        return empty\n\n    raw = re.sub(r\"<(?:think|thinking|reasoning)>.*?</(?:think|thinking|reasoning)>\", \"\", text, flags=re.S | re.I).strip()\n    data = None\n    try:\n        data\
           \ = json.loads(raw)\n    except (json.JSONDecodeError, ValueError):\n        m = re.search(r\"\\{.*\\}\", raw, re.S)\n        if m:\n            try:\n                data = json.loads(m.group(0))\n\
           \            except (json.JSONDecodeError, ValueError):\n                data = None\n\n    if not isinstance(data, dict):\n        return {**empty, \"reply_text\": raw, \"msg1\": raw, \"has1\"\
-          : bool(raw.strip())}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"stage\", stage),\
-          \ stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip() for x\
-          \ in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
-          \ \"stage\": out_stage}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 = parts[0] if len(parts)\
-          \ > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file,\
-          \ \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3)}\n"
+          : bool(raw.strip()), \"material_url\": \"\"}\n\n    action = str(data.get(\"action\") or \"\").strip()\n    send_file = bool(data.get(\"send_file\")) or False\n    out_stage = _clamp_stage(data.get(\"\
+          stage\", stage), stage)\n\n    reply = str(data.get(\"reply_text\") or \"\").strip()\n    msgs = data.get(\"messages\")\n    parts = []\n    if isinstance(msgs, list):\n        parts = [str(x).strip()\
+          \ for x in msgs if isinstance(x, str) and x.strip()]\n    if not parts and reply:\n        parts = [reply]\n    if not parts:\n        return {**empty, \"action\": action, \"send_file\": send_file,\
+          \ \"stage\": out_stage, \"material_url\": \"\"}\n\n    if out_stage < 3 and any(_is_material_collect(p) for p in parts):\n        parts = [\"好的，您先了解，有任何问题随时问我；确定办理的话说一声，我马上安排签约。\"]\n\n    m1 =\
+          \ parts[0] if len(parts) > 0 else \"\"\n    m2 = parts[1] if len(parts) > 1 else \"\"\n    m3 = parts[2] if len(parts) > 2 else \"\"\n    material_url = str(data.get(\"material_url\") or \"\"\
+          ).strip()\n    return {\"action\": action, \"reply_text\": reply or m1, \"send_file\": send_file, \"stage\": out_stage,\n            \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n            \"has1\"\
+          : bool(m1), \"has2\": bool(m2), \"has3\": bool(m3), \"material_url\": material_url}\n"
         code_language: python3
         desc: ''
         isInIteration: false
@@ -1651,6 +1668,9 @@ workflow:
           has3:
             children: null
             type: boolean
+          material_url:
+            children: null
+            type: string
         selected: false
         title: 解析交付Agent
         type: code
@@ -1679,13 +1699,15 @@ workflow:
       zIndex: 0
     - data:
         code: "def main(\n    p1_msg1: str, p1_msg2: str, p1_msg3: str, p1_send_file, p1_stage,\n    g_msg1: str, g_send_file, g_stage,\n    c_msg1: str, c_msg2: str, c_msg3: str, c_send_file, c_stage,\n\
-          \    s_msg1: str, s_msg2: str, s_msg3: str, s_send_file, s_stage,\n    d_msg1: str, d_msg2: str, d_msg3: str, d_send_file, d_stage,\n):\n    \"\"\"聚合各阶段分支的输出：取第一个非空 msg1 所在分支的全部字段。\"\"\"\n   \
-          \ branches = [\n        {\"msg1\": p1_msg1, \"msg2\": p1_msg2, \"msg3\": p1_msg3, \"send_file\": bool(p1_send_file), \"stage\": p1_stage},\n        {\"msg1\": g_msg1, \"msg2\": \"\", \"msg3\"\
-          : \"\", \"send_file\": bool(g_send_file), \"stage\": g_stage},\n        {\"msg1\": c_msg1, \"msg2\": c_msg2, \"msg3\": c_msg3, \"send_file\": bool(c_send_file), \"stage\": c_stage},\n        {\"\
-          msg1\": s_msg1, \"msg2\": s_msg2, \"msg3\": s_msg3, \"send_file\": bool(s_send_file), \"stage\": s_stage},\n        {\"msg1\": d_msg1, \"msg2\": d_msg2, \"msg3\": d_msg3, \"send_file\": bool(d_send_file),\
-          \ \"stage\": d_stage},\n    ]\n    for b in branches:\n        if b[\"msg1\"]:\n            return {\n                \"msg1\": b[\"msg1\"], \"msg2\": b[\"msg2\"], \"msg3\": b[\"msg3\"],\n   \
-          \             \"send_file\": b[\"send_file\"], \"stage\": b[\"stage\"],\n                \"has1\": bool(b[\"msg1\"]), \"has2\": bool(b[\"msg2\"]), \"has3\": bool(b[\"msg3\"]),\n            }\n\
-          \    return {\"msg1\": \"\", \"msg2\": \"\", \"msg3\": \"\", \"send_file\": False, \"stage\": 0,\n            \"has1\": False, \"has2\": False, \"has3\": False}\n"
+          \    s_msg1: str, s_msg2: str, s_msg3: str, s_send_file, s_stage, s_material_url: str, open_account_id: str,\n    d_msg1: str, d_msg2: str, d_msg3: str, d_send_file, d_stage,\n):\n    \"\"\"聚合各阶段分支的输出：取第一个非空\
+          \ msg1 所在分支的全部字段。\"\"\"\n    branches = [\n        {\"msg1\": p1_msg1, \"msg2\": p1_msg2, \"msg3\": p1_msg3, \"send_file\": bool(p1_send_file), \"stage\": p1_stage},\n        {\"msg1\": g_msg1,\
+          \ \"msg2\": \"\", \"msg3\": \"\", \"send_file\": bool(g_send_file), \"stage\": g_stage},\n        {\"msg1\": c_msg1, \"msg2\": c_msg2, \"msg3\": c_msg3, \"send_file\": bool(c_send_file), \"stage\"\
+          : c_stage},\n        {\"msg1\": s_msg1, \"msg2\": s_msg2, \"msg3\": s_msg3, \"send_file\": bool(s_send_file), \"stage\": s_stage},\n        {\"msg1\": d_msg1, \"msg2\": d_msg2, \"msg3\": d_msg3,\
+          \ \"send_file\": bool(d_send_file), \"stage\": d_stage},\n    ]\n    material_url = s_material_url or \"\"\n    for b in branches:\n        if b[\"msg1\"]:\n            return {\n            \
+          \    \"msg1\": b[\"msg1\"], \"msg2\": b[\"msg2\"], \"msg3\": b[\"msg3\"],\n                \"send_file\": b[\"send_file\"], \"stage\": b[\"stage\"],\n                \"has1\": bool(b[\"msg1\"\
+          ]), \"has2\": bool(b[\"msg2\"]), \"has3\": bool(b[\"msg3\"]),\n                \"material_url\": material_url,\n                \"check_url\": material_url or (\"https://www.ibanbu.com/YQT/qyfwwtd.html\"\
+          \ + (\"?uuid=\" + open_account_id if open_account_id else \"\")),\n            }\n    return {\"msg1\": \"\", \"msg2\": \"\", \"msg3\": \"\", \"send_file\": False, \"stage\": 0,\n            \"\
+          has1\": False, \"has2\": False, \"has3\": False, \"material_url\": \"\", \"check_url\": \"\"}\n"
         code_language: python3
         desc: ''
         isInIteration: false
@@ -1715,6 +1737,12 @@ workflow:
           has3:
             children: null
             type: boolean
+          material_url:
+            children: null
+            type: string
+          check_url:
+            children: null
+            type: string
         selected: false
         title: 汇总各阶段输出
         type: code
@@ -1834,6 +1862,16 @@ workflow:
           - stage
           value_type: number
           variable: d_stage
+        - value_selector:
+          - code_parse_sign
+          - material_url
+          value_type: string
+          variable: s_material_url
+        - value_selector:
+          - start
+          - openAccountId
+          value_type: string
+          variable: open_account_id
       height: 52
       id: code_merge
       position:
@@ -1842,6 +1880,146 @@ workflow:
       positionAbsolute:
         x: 2112
         y: 583.7424242424241
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data: []
+          type: none
+        headers: 'Content-Type: application/json'
+        method: get
+        params: ''
+        retry_config:
+          max_retries: 0
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 5
+          read: 10
+          write: 5
+        title: 检查签约材料链接
+        type: http-request
+        url: '{{#code_merge.check_url#}}'
+        error_strategy: default-value
+        default_value:
+        - key: status_code
+          type: number
+          value: 404
+        - key: body
+          type: string
+          value: ''
+      height: 131
+      id: http_check_link
+      position:
+        x: 3500
+        y: 0
+      positionAbsolute:
+        x: 3500
+        y: 0
+      selected: false
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "def main(\n    msg1: str, msg2: str, msg3: str,\n    material_url: str,\n    http_status,\n    http_body: str,\n    send_file,\n    stage,\n    open_account_id: str,\n):\n    \"\"\"链接可用性判断\
+          \ + 消息内主链接替换为最终链接。\n\n    主链接（material_url）HTTP 200 → 用之；否则降级默认链接。\n    \"\"\"\n    default_link = \"https://www.ibanbu.com/YQT/qyfwwtd.html\" + (\"?uuid=\" + open_account_id if open_account_id\
+          \ else \"\")\n\n    ok = False\n    try:\n        if int(http_status) == 200:\n            ok = True\n    except (TypeError, ValueError):\n        # 兼容无 status_code：body 非空且非 404 视为可用\n      \
+          \  body = str(http_body or \"\")\n        ok = bool(material_url) and len(body.strip()) > 0 and \"404\" not in body[:200]\n\n    if ok and material_url:\n        final_link = material_url\n  \
+          \  else:\n        final_link = default_link\n\n    def sub(m):\n        return m.replace(material_url, final_link) if material_url else m\n\n    m1, m2, m3 = sub(msg1), sub(msg2), sub(msg3)\n\
+          \    return {\n        \"msg1\": m1, \"msg2\": m2, \"msg3\": m3,\n        \"send_file\": bool(send_file), \"stage\": stage,\n        \"has1\": bool(m1), \"has2\": bool(m2), \"has3\": bool(m3),\n\
+          \    }\n"
+        code_language: python3
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        outputs:
+          msg1:
+            children: null
+            type: string
+          msg2:
+            children: null
+            type: string
+          msg3:
+            children: null
+            type: string
+          send_file:
+            children: null
+            type: boolean
+          stage:
+            children: null
+            type: number
+          has1:
+            children: null
+            type: boolean
+          has2:
+            children: null
+            type: boolean
+          has3:
+            children: null
+            type: boolean
+        selected: false
+        title: 确认最终链接并替换
+        type: code
+        variables:
+        - value_selector:
+          - code_merge
+          - msg1
+          value_type: string
+          variable: msg1
+        - value_selector:
+          - code_merge
+          - msg2
+          value_type: string
+          variable: msg2
+        - value_selector:
+          - code_merge
+          - msg3
+          value_type: string
+          variable: msg3
+        - value_selector:
+          - code_merge
+          - material_url
+          value_type: string
+          variable: material_url
+        - value_selector:
+          - http_check_link
+          - status_code
+          value_type: number
+          variable: http_status
+        - value_selector:
+          - http_check_link
+          - body
+          value_type: string
+          variable: http_body
+        - value_selector:
+          - code_merge
+          - send_file
+          value_type: boolean
+          variable: send_file
+        - value_selector:
+          - code_merge
+          - stage
+          value_type: number
+          variable: stage
+        - value_selector:
+          - start
+          - openAccountId
+          value_type: string
+          variable: open_account_id
+      height: 52
+      id: code_final_link
+      position:
+        x: 3500
+        y: 150
+      positionAbsolute:
+        x: 3500
+        y: 150
       selected: false
       type: custom
       width: 242
@@ -2085,12 +2263,25 @@ workflow:
         isInIteration: false
         isInLoop: false
         sourceType: code
-        targetType: code
-      id: e_merge_final
+        targetType: http-request
+      id: e_merge_checklink
       selected: false
       source: code_merge
       sourceHandle: source
-      target: code_final_text
+      target: http_check_link
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: e_checklink_finallink
+      selected: false
+      source: http_check_link
+      sourceHandle: source
+      target: code_final_link
       targetHandle: target
       type: custom
       zIndex: 0
@@ -2099,9 +2290,9 @@ workflow:
         isInLoop: false
         sourceType: code
         targetType: code
-      id: e_merge_file
+      id: e_final_file
       selected: false
-      source: code_merge
+      source: code_final_link
       sourceHandle: source
       target: code_build_file
       targetHandle: target
@@ -2138,9 +2329,9 @@ workflow:
         isInLoop: false
         sourceType: code
         targetType: if-else
-      id: e_merge_m1
+      id: e_final_m1
       selected: false
-      source: code_merge
+      source: code_final_link
       sourceHandle: source
       target: if_has_msg1
       targetHandle: target
@@ -2280,6 +2471,19 @@ workflow:
         isInIteration: false
         isInLoop: false
         sourceType: code
+        targetType: code
+      id: e_final_record
+      selected: false
+      source: code_final_link
+      sourceHandle: source
+      target: code_final_text
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
         targetType: end
       id: e_final_end
       selected: false
@@ -2290,7 +2494,7 @@ workflow:
       type: custom
       zIndex: 0
     viewport:
-      x: 115.72974721883247
-      y: 156.28832682080707
-      zoom: 0.4032372794154992
+      x: -453.3937271714267
+      y: -1.1141423516485247
+      zoom: 0.808425837369234
   rag_pipeline_variables: []

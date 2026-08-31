@@ -4,6 +4,56 @@
 
 ## [开发中]
 
+### 管理后台前端（登录后管理群绑定与会话阶段）
+- 新增 frontend/ 管理后台前端（Vite + React 19 + TypeScript + Tailwind v4），含登录页、群绑定管理页、会话阶段管理页；构建产物 frontend/dist 由后端托管（生产访问 http://<host>:8000/，开发模式 Vite 8001 端口且 /api 代理到本服务）
+- 登录页：用户名/密码登录，token 本地保存后带 `Authorization: Bearer <token>` 访问 /api/* 管理接口
+- 群绑定管理页：查询/搜索/新增/编辑/删除群绑定；知识库 ID 留空保存时自动建库并回填
+- 会话阶段管理页：分页查询/搜索/编辑 session_stage（stage 0~4）
+- src/main.py 新增 SPA 兜底路由托管 frontend/dist，未知路径回退 index.html（注册在所有 API 路由之后，不吞 /health、/callback）
+
+### 管理接口登录鉴权：用户名/密码 → Bearer token
+- 新增 src/api_auth.py：POST /api/auth/login 用户名/密码（WT_ADMIN_USERNAME / WT_ADMIN_PASSWORD）校验通过后签发 HMAC-SHA256 签名 Bearer token（12 小时过期）；GET /api/auth/me 校验 token 返回当前用户名
+- 未配置 WT_ADMIN_PASSWORD 时登录接口禁用（503，仍可用 X-API-Key）；未配置 WT_ADMIN_API_KEY 时整体禁用
+- src/auth.py 新增 create_token/verify_token（token 签名密钥由管理密钥派生，无需额外配置）、get_current_user 依赖；require_admin 支持 X-API-Key 与 Bearer token 二选一
+- 鉴权豁免列表增加 /api/auth/login；README 补充登录与 token 调用示例
+
+### 群绑定保存自动创建群专属知识库
+- POST /api/bindings 新增/编辑绑定且 memory_dataset_id 留空时，保存成功后自动调用 Dify API（POST /v1/datasets，命名 群记忆_{group_id}）创建群专属知识库并回填绑定
+- 创建失败不影响绑定保存，失败原因放入响应 warning 由前端弹窗提示；未配置 WT_DIFY_DATASET_KEY 时提示手动填写
+
+### 会话阶段分页查询接口
+- 新增 GET /api/memory/stages：分页列出全部会话阶段（session_id 模糊搜索、按更新时间倒序、limit 上限 1000）
+- src/memory.py 新增 ChatMemoryStore.list_stages 分页查询方法
+
+### Dify/WorkTool 调用可选走系统代理
+- 新增 WT_HTTPX_TRUST_ENV 配置（默认 false=忽略代理直连，生产内网推荐）；开发机被 TUN 代理（如 Clash）接管导致连不上局域网 Dify 时设 true 走系统代理
+- dify_client / company_profile / init_datasets / kb 的 httpx 调用由 trust_env=False 改为按该配置
+
+### 发链接后保持阶段2，客户确认交付才进3（线上已发布）
+- 修复：原规则"资料齐全→发委托单链接→stage 输出 3"，只发链接就跳到签约后交付，偏早（开通后台/顾问对接/每月跟进等交付动作尚未完成）
+- 阶段2 Agent 指令改为：资料齐全并发送委托单链接后【stage 保持 2】；客户明确确认材料/要求继续交付（"材料收到/可以继续/开通后台吧/安排顾问吧"）→ stage 输出 3；简单回应保持 2
+- dify/开户办理-主流程.yml 已同步
+
+### 委托单链接追加 ?uuid={开户ID}（线上已发布）
+- 阶段2 Agent：material_url 末尾追加 ?uuid=【开户ID】——有 distUuid → qyfwwtd-{distUuid}.html?uuid={开户ID}；无 → qyfwwtd.html?uuid={开户ID}
+- code_merge：check_url 兜底默认链接带 uuid（open_account_id 空时不加参数）
+- code_final_link：接收 open_account_id，降级默认链接带 uuid；验证 404 降级/200/无链接/带不带 uuid 均正确
+- dify/开户办理-主流程.yml 已同步（30 节点）
+
+### 链接检查节点错误处理：404 降级不中断（线上已发布）
+- 修复：有 distUuid 拼出的链接也可能 404；实测 Dify http 节点对 404 直接抛错（node_retry→Request failed with status code 404→分支中断，code_final_link 不执行，降级逻辑走不到）
+- 修复：http_check_link 节点配置 error_strategy=default-value + default_value（status_code=404, body=""），节点失败（含404）时输出默认值、工作流继续；code_final_link 读到 status_code=404 → 降级默认链接 https://www.ibanbu.com/YQT/qyfwwtd.html
+- 实测验证：404 URL → http_check_link 出错后 code_final_link 正常执行，workflow_finished 正常（分支不再中断）
+- dify/开户办理-主流程.yml 已同步（30 节点）
+
+### 阶段1按distName发9个月话术；阶段2按distUuid发链接并降级（线上已发布，30 节点）
+- 阶段1（答疑转化Agent）：9个月免费福利疑问先调 getOpenAccountDetail 确认 distName，仅当 distName=="田野聚落" 才发送 9 个月免费话术；否则按通用口径回答、不发该话术
+- 阶段2（签约交付Agent）：资料齐全 → 调 getOpenAccountDetail 拿 distUuid → material_url = https://www.ibanbu.com/YQT/qyfwwtd-{distUuid}.html（无 distUuid 用默认 https://www.ibanbu.com/YQT/qyfwwtd.html）；send_file 恒 false（改为发链接文本，不再发文件消息）；messages 含带链接文本；输出 JSON 增加 material_url
+- 工作流新增链接检查链：code_merge（透传 material_url + check_url 兜底默认）→ http_check_link（GET 检查 status_code）→ code_final_link（200 用主链接，否则降级默认链接；消息内主链接字符串替换为最终链接）→ 发送链
+- 发送链 msg/send_file/stage 来源 code_merge → code_final_link；文件链保留但不再触发（send_file 恒 false）
+- 实测：http_check_link/code_final_link 正常执行无报错（status_code 绑定有效）；单测：200→主链接、404→降级、无链接→原样
+- dify/开户办理-主流程.yml 已同步（30 节点 36 边）
+
 ### 区分「客服服务阶段」与「开户办理进度」（线上已发布）
 - 三个业务 Agent（答疑/签约/交付）指令新增"两个进度要分清"说明：
   ① 客服服务阶段（stage 0~4）是内部状态，只用于决定话术/流程，不向客户提及、不当作开户进度回答；

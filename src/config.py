@@ -38,6 +38,18 @@ class Settings(BaseSettings):
     # /health 不受此限制。
     admin_api_key: str = ""
 
+    # 管理后台登录（用户名/密码，敏感，配置在 .env 文件: WT_ADMIN_USERNAME / WT_ADMIN_PASSWORD）
+    # POST /api/login 校验通过后签发带过期时间的 Bearer token，前端用
+    # Authorization: Bearer <token> 访问 /api/* 管理接口（与 X-API-Key 二选一均有效）。
+    # 未配置 WT_ADMIN_PASSWORD 时登录接口禁用（仍可用 X-API-Key）。
+    admin_username: str = "admin"
+    admin_password: str = ""
+
+    # 调用 Dify / WorkTool 时是否使用系统代理（httpx trust_env）。
+    # 默认 False=忽略代理直连（生产内网推荐）；个别开发机被 TUN 代理（如 Clash）接管
+    # 局域网直连导致连不上内网服务时，设 true 让请求走系统代理（127.0.0.1:7890）。
+    httpx_trust_env: bool = False
+
     # ---- Dify 工作流（回调 → 整理参数 → /v1/workflows/run）----
     dify_base_url: str = "http://192.168.31.204"        # Dify 服务地址，如 http://192.168.31.204
     # 注意：Dify 工作流应用的 API Key 不再放配置文件 —— 它跟着 workflow appid 走，

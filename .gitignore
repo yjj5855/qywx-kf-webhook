@@ -9,6 +9,9 @@ dist/
 .DS_Store
 logs/
 data/*
+node_modules/
+.npm-cache/
 
 # Dify 线上工作流编辑临时文件
 .dify-work/
+.mcp-work/

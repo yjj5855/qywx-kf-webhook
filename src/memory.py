@@ -159,6 +159,36 @@ class ChatMemoryStore:
             )
             conn.commit()
 
+    def list_stages(
+        self,
+        session_id: str = "",
+        limit: int = 200,
+        offset: int = 0,
+    ) -> tuple[list[dict], int]:
+        """分页列出会话阶段（管理后台用），session_id 支持模糊匹配，按更新时间倒序。
+
+        返回 (items, total)，items 形如 [{"session_id": ..., "stage": ..., "updated_at": ...}]。
+        """
+        with sqlite3.connect(self._db_path) as conn:
+            if session_id:
+                where, params = "WHERE session_id LIKE ?", (f"%{session_id}%",)
+            else:
+                where, params = "", ()
+            total = conn.execute(
+                f"SELECT COUNT(*) FROM session_stage {where}", params
+            ).fetchone()[0]
+            rows = conn.execute(
+                f"SELECT session_id, stage, updated_at FROM session_stage {where} "
+                "ORDER BY updated_at DESC, session_id ASC LIMIT ? OFFSET ?",
+                params + (int(limit), int(offset)),
+            ).fetchall()
+        items = [
+            {"session_id": r[0], "stage": r[1], "updated_at": r[2]}
+            for r in rows
+        ]
+        return items, total
+
+
     def history(self, session_id: str, limit: int = CTX_TURNS) -> list[dict]:
         """最近 limit 条消息（按时间正序）。"""
         with sqlite3.connect(self._db_path) as conn:

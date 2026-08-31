@@ -14,23 +14,25 @@
 
 ```
 src/
-  main.py              # FastAPI 入口（/callback、/health）
+  main.py              # FastAPI 入口（/callback、/health、前端静态托管）
   config.py            # 配置加载（WT_* 前缀，按 APP_ENV 选 .env 文件）
   handler.py           # 消息处理器（Dify 工作流 + Echo 兜底，按群绑定取工作流）
   dify_client.py       # Dify 工作流客户端
   client.py            # WorkTool API 客户端（发送消息）
   binding.py           # 群绑定存储（群 ↔ 公司ID / 知识库 / 工作流）
   workflow_apps.py     # workflow 配置表存储（工作流应用 ID ↔ API Key）
-  memory.py            # 对话记忆存储
+  memory.py            # 对话记忆存储（chat_memory / session_stage）
   session_store.py     # 会话 ID 存储
   company.py           # 公司信息查询
   kb.py                # 知识库文档写入
   company_profile.py   # 群公司档案：客服手写公司描述 → 群知识库（构建/同步）
   exporter.py          # 知识库增量导出定时任务
   models.py            # 数据模型
+  auth.py              # 管理接口鉴权（X-API-Key / Bearer token）
+  api_auth.py          # 管理后台登录接口（用户名/密码 → token）
   api_bindings.py      # 群绑定管理接口
   api_workflows.py     # workflow 配置表接口（工作流应用注册）
-  api_memory.py        # 对话记忆 / 知识库导出接口
+  api_memory.py        # 对话记忆 / 会话阶段 / 知识库导出接口
   api_yuque.py         # 语雀外部知识库检索接口（Dify 外部知识库胶水服务）
   init_bindings.py     # 从 CSV 初始化群绑定
   init_kb_bindings.py  # 回填群知识库 dataset id
@@ -42,6 +44,7 @@ dify/                 # Dify 工作流 YAML（客服-主流程 / 开户办理-�
 docs/                 # 文档、客户群 CSV、执行文档
 data/                 # SQLite 数据库（gitignore）
 logs/                 # 运行日志（gitignore）
+frontend/             # 管理后台前端（Vite + React + Tailwind，npm run build 后由后端托管）
 ```
 
 ## 快速开始
@@ -103,6 +106,34 @@ curl http://localhost:8000/health
 # {"status":"ok"}
 ```
 
+## 管理后台（前端）
+
+`frontend/` 是管理后台前端（Vite + React 19 + TypeScript + Tailwind v4），用于：
+- **群绑定关系管理**：查询 / 搜索 / 新增 / 编辑 / 删除群绑定（`group_bindings` 表）；新增或编辑时**知识库ID留空**，保存成功后自动调用 Dify API 创建该群专属知识库（命名 `群记忆_{group_id}`）并回填绑定，创建失败会在弹窗中提示（不影响绑定本身）；
+- **会话服务阶段管理**：查询 / 搜索 / 设置 `session_stage` 表（stage 0~4，也可直接编辑）；
+- **登录**：用户名/密码（`WT_ADMIN_USERNAME` / `WT_ADMIN_PASSWORD`）登录后签发 Bearer token 访问接口。
+
+**开发模式**（前端热更新，`/api` 代理到本服务 8000 端口）：
+
+```bash
+cd frontend
+npm install          # 首次
+npm run dev          # 打开 http://localhost:8001（若端口被占会自动换端口）
+```
+
+**生产模式**（构建后由 Python 服务直接托管，访问 `http://<host>:8000/`）：
+
+```bash
+cd frontend
+npm install
+npm run build        # 生成 frontend/dist
+cd ..
+python -m src.main   # 或 APP_ENV=prod python -m src.main
+```
+
+> 注意：登录依赖 `.env` 中的 `WT_ADMIN_API_KEY`（后端 fail-closed）与 `WT_ADMIN_PASSWORD`（未配置时登录接口禁用）。
+> 开发默认账号：`admin / admin123`（见 `.env.dev`），生产环境请修改 `.env.prod`。
+
 ## 配置项
 
 所有配置以 `WT_` 为前缀，写在 `.env.dev` / `.env.prod` 中：
@@ -113,6 +144,9 @@ curl http://localhost:8000/health
 | `WT_PORT` | 监听端口 | `8000` |
 | `WT_API_BASE_URL` | WorkTool API 地址 | `https://api.worktool.ymdyes.cn` |
 | `WT_ADMIN_API_KEY` | 管理接口密钥（`/api/*` 请求头 `X-API-Key`，未配置时管理接口禁用） | — |
+| `WT_ADMIN_USERNAME` | 管理后台登录用户名（配合 `WT_ADMIN_PASSWORD` 走 `/api/auth/login` 签发 token） | `admin` |
+| `WT_ADMIN_PASSWORD` | 管理后台登录密码（未配置时登录接口禁用，仍可用 `X-API-Key`） | — |
+| `WT_HTTPX_TRUST_ENV` | 调用 Dify/WorkTool 时是否走系统代理（httpx trust_env）：`false`=忽略代理直连（生产内网推荐）；开发机被 TUN 代理（如 Clash）接管导致连不上局域网 Dify 时设 `true` 走系统代理 | `false` |
 | `WT_DEBOUNCE_SECONDS` | 回调防抖窗口（秒）：同一会话窗口内多条消息合并为一次工作流调用，全部消息仍入库 | `1.0` |
 | `WT_DIFY_BASE_URL` | Dify 服务地址 | — |
 | `WT_DIFY_TIMEOUT` | 工作流调用超时（秒） | `30` |
@@ -133,28 +167,45 @@ curl http://localhost:8000/health
 
 ## API 接口
 
-**管理接口鉴权**：所有 `/api/*` 管理接口（群绑定 / workflow 配置 / 对话记忆）都要求请求头
-`X-API-Key: <WT_ADMIN_API_KEY>`；**未配置 `WT_ADMIN_API_KEY` 时管理接口整体禁用（503，fail-closed）**。
-豁免：`/callback`（WorkTool 回调）、`/health`、`/retrieval`（语雀外部知识库，自带 `WT_YUQUE_EXTERNAL_KEY` 鉴权）。
+**管理接口鉴权**：所有 `/api/*` 管理接口（群绑定 / workflow 配置 / 对话记忆）都要求凭据，二选一：
+- 请求头 `X-API-Key: <WT_ADMIN_API_KEY>`；
+- 请求头 `Authorization: Bearer <token>`（`POST /api/auth/login` 用户名/密码登录签发，12 小时有效）。
+
+**未配置 `WT_ADMIN_API_KEY` 时管理接口整体禁用（503，fail-closed）**。
+豁免：`/callback`（WorkTool 回调）、`/health`、`/retrieval`（语雀外部知识库，自带 `WT_YUQUE_EXTERNAL_KEY` 鉴权）、`/api/auth/login`（登录本身）。
 
 ```bash
-# 管理接口调用示例
+# 管理接口调用示例（X-API-Key）
 curl -H "X-API-Key: <你的管理密钥>" http://localhost:8000/api/bindings
+
+# 用户名/密码登录（返回 Bearer token）
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"<WT_ADMIN_PASSWORD>"}'
+# {"code":0,"message":"ok","data":{"token":"eyJ...","username":"admin","expires_in":43200}}
+
+# 用 token 访问管理接口
+curl -H "Authorization: Bearer eyJ..." http://localhost:8000/api/bindings
 ```
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/callback?robotId=xxx` | 接收 WorkTool 消息回调（豁免鉴权） |
 | GET | `/health` | 健康检查（豁免鉴权） |
+| POST | `/api/auth/login` | 用户名/密码登录，返回 Bearer token（12 小时有效） |
+| GET | `/api/auth/me` | 校验 token 并返回当前登录用户名 |
 | GET | `/api/bindings` | 列出全部群绑定 |
 | GET | `/api/bindings/query` | 查询单个绑定（`platform`、`group_id`） |
-| POST | `/api/bindings` | 新增/更新绑定 |
+| POST | `/api/bindings` | 新增/更新绑定；`memory_dataset_id` 留空时保存成功后自动调用 Dify 创建该群专属知识库（`群记忆_{group_id}`）并回填，失败时响应带 `warning` 提示 |
 | DELETE | `/api/bindings` | 删除绑定（软删除） |
 | GET | `/api/workflows` | 列出 workflow 配置表（工作流应用注册，含 app_id/name/api_key） |
 | POST | `/api/workflows` | 新增/更新工作流应用注册（`app_id`、`name`、`api_key`） |
 | DELETE | `/api/workflows` | 删除工作流应用注册（`app_id`） |
 | POST | `/api/messages/record` | 记录对话记忆 |
 | GET | `/api/messages/history` | 查询对话历史（`session_id`） |
+| GET | `/api/messages/stage` | 查询单个会话的服务阶段（`session_id`） |
+| POST | `/api/messages/stage` | 设置/重置会话服务阶段（`session_id` + `stage` 0~4） |
+| GET | `/api/messages/stages` | 分页列出全部会话阶段（`session_id` 模糊搜索、`limit`/`offset`） |
 | POST | `/api/messages/export` | 导出单个群对话到知识库（`session_id` + `since_id` 增量） |
 | POST | `/api/messages/sync` | 手动全量同步所有绑定知识库的群（与每日定时同步同逻辑） |
 | POST | `/retrieval` | 语雀外部知识库检索（Dify「连接外部知识库」适配端点） |

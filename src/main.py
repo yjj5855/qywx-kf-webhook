@@ -9,7 +9,9 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, PlainTextResponse
 
+from src.api_auth import router as auth_router
 from src.api_bindings import router as bindings_router
 from src.api_memory import router as memory_router
 from src.api_workflows import router as workflows_router
@@ -81,6 +83,7 @@ app = FastAPI(title="WorkTool Callback Service", lifespan=lifespan)
 app.include_router(bindings_router, prefix="/api")
 app.include_router(memory_router, prefix="/api")
 app.include_router(workflows_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 # 语雀外部知识库检索端点：Dify 配置的外部知识库 API 地址需以 /retrieval 结尾，
 # 即填 http://<host>:8000/retrieval（新版本 Dify 会自动在填写的地址后追加 /retrieval）
 app.include_router(yuque_router)
@@ -185,6 +188,32 @@ async def callback(request: Request):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ---- 管理后台前端（frontend/dist，npm run build 生成）----
+# 兜底路由必须注册在所有 API / 回调路由之后，否则会吞掉 /health、/callback 等。
+
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+_MISSING_HINT = (
+    "前端未构建：请在 frontend 目录执行 npm install && npm run build，"
+    "或开发模式运行 npm run dev（Vite 8001 端口，/api 代理到本服务）。"
+).encode("utf-8")
+
+
+@app.get("/{path:path}", include_in_schema=False)
+async def spa_fallback(path: str):
+    """托管前端构建产物；未知路径回退 index.html（SPA 路由）。"""
+    if not FRONTEND_DIST.is_dir():
+        return PlainTextResponse(_MISSING_HINT, status_code=200)
+    target = (FRONTEND_DIST / (path or "")).resolve()
+    if not str(target).startswith(str(FRONTEND_DIST.resolve())):
+        return PlainTextResponse("forbidden", status_code=404)
+    if target.is_file():
+        return FileResponse(target)
+    index = FRONTEND_DIST / "index.html"
+    if index.is_file():
+        return FileResponse(index)
+    return PlainTextResponse(_MISSING_HINT, status_code=200)
 
 
 # ---- 入口 ----

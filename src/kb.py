@@ -67,7 +67,7 @@ async def create_dataset_document(
         "Content-Type": "application/json",
     }
     try:
-        async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
+        async with httpx.AsyncClient(timeout=timeout, trust_env=settings.httpx_trust_env) as client:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
