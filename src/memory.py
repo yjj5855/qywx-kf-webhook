@@ -32,7 +32,9 @@ CREATE TABLE IF NOT EXISTS chat_memory (
 );
 """
 _CREATE_INDEX = "CREATE INDEX IF NOT EXISTS idx_memory_session ON chat_memory(session_id, id);"
-# 会话服务阶段（显式状态，供工作流 Agent 判断当前处于哪一阶段，不靠历史推断）
+# 会话阶段（显式状态，供工作流 Agent 判断当前处于哪一阶段，不靠历史推断）
+# 取值对应企业开户办理的推进阶段（0未开始 1签约阶段 2企业注册阶段 3银行开户阶段
+# 4服务准备阶段 5服务启动阶段 6首月服务结算），见 docs/开户客服流程.md
 _CREATE_STAGE_TABLE = """
 CREATE TABLE IF NOT EXISTS session_stage (
     session_id TEXT PRIMARY KEY,
@@ -128,10 +130,10 @@ class ChatMemoryStore:
             )
             conn.commit()
 
-    # ---- 会话服务阶段（显式状态：0未开始 1初次触达 2转化签约 3签约后交付 4长期服务）----
+    # ---- 会话阶段（显式状态：0未开始 1签约 2企业注册 3银行开户 4服务准备 5服务启动 6首月结算）----
 
     def get_stage(self, session_id: str) -> int:
-        """取会话当前服务阶段；无记录返回 0。"""
+        """取会话当前阶段（0-6）；无记录返回 0。"""
         if not session_id:
             return 0
         with sqlite3.connect(self._db_path) as conn:
@@ -142,14 +144,14 @@ class ChatMemoryStore:
         return int(row[0]) if row else 0
 
     def set_stage(self, session_id: str, stage: int) -> None:
-        """写入会话服务阶段（0-4，越界按 0 处理）。"""
+        """写入会话阶段（0-6，越界按 0 处理）。"""
         if not session_id:
             return
         try:
             stage = int(stage)
         except (TypeError, ValueError):
             return
-        stage = min(max(stage, 0), 4)
+        stage = min(max(stage, 0), 6)
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         with sqlite3.connect(self._db_path) as conn:
             conn.execute(

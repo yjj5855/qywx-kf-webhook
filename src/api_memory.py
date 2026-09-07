@@ -140,16 +140,15 @@ async def sync_all():
 
 class SetStageRequest(BaseModel):
     session_id: str           # 会话标识，格式 roomType:chat_id，如 "1:测试二群"（外部后台按群名拼接）
-    stage: int                # 服务阶段 0~4（0未开始 1初次触达 2转化签约 3签约后交付 4长期服务）
+    stage: int                # 会话阶段 0~6（0未开始 1签约 2企业注册 3银行开户 4服务准备 5服务启动 6首月结算）
 
 
 @router.post("/stage")
 async def set_session_stage(req: SetStageRequest):
-    """外部后台设置/重置会话服务阶段（如客服在其他后台完成初次触达后置 stage=1）。
+    """外部后台设置/重置会话阶段（0-6，对应 docs/开户客服流程.md 六阶段）。
 
-    用途：0→1 等阶段可能不在机器人回调链路内完成（介绍话术由人工在其他后台发送），
-    后台发完介绍后调用本接口把会话 stage 置为对应值，机器人后续按该阶段响应，
-    避免重复发送第一阶段介绍。
+    用途：某些阶段切换不在机器人回调链路内完成（如客服在后台确认注册完成、开户完成等），
+    后台调用本接口把会话 stage 置为对应值，机器人后续按该阶段响应引导。
     """
     if not req.session_id:
         return {"code": -1, "message": "缺少 session_id"}
@@ -164,7 +163,7 @@ async def set_session_stage(req: SetStageRequest):
 
 @router.get("/stage")
 async def get_session_stage(session_id: str = ""):
-    """查询会话当前服务阶段。"""
+    """查询会话当前阶段（0-6）。"""
     if not session_id:
         return {"code": -1, "message": "缺少 session_id"}
     return {

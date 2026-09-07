@@ -10,6 +10,8 @@ const STAGE_BADGE: Record<number, string> = {
   2: 'bg-amber-50 text-amber-700',
   3: 'bg-violet-50 text-violet-700',
   4: 'bg-teal-50 text-teal-700',
+  5: 'bg-emerald-50 text-emerald-700',
+  6: 'bg-rose-50 text-rose-700',
 };
 
 export default function StagesPage() {
@@ -84,10 +86,10 @@ export default function StagesPage() {
         <div>
           <h1 className="flex items-center gap-2 text-xl font-bold text-slate-800">
             <Layers className="h-5 w-5 text-[#66CDB5]" aria-hidden="true" />
-            会话服务阶段管理
+            会话阶段管理
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            共 {total} 个会话 · session_stage 表 · 0未开始 / 1初次触达 / 2转化签约 / 3签约后交付 / 4长期服务
+            共 {total} 个会话 · session_stage 表 · 0未开始 / 1签约 / 2企业注册 / 3银行开户 / 4服务准备 / 5服务启动 / 6首月结算
           </p>
         </div>
         <div className="flex items-center gap-2">

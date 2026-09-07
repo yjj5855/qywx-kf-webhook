@@ -164,7 +164,8 @@ class DifyWorkflowHandler(MessageHandler):
             # 当前消息已通过 spoken 单独传入，须用 exclude_latest 排除最新一条，
             # 否则当前消息会重复出现在【历史对话】里
             "recentContext": self._memory.to_context(req.session_id, exclude_latest=True),
-            # 会话当前服务阶段（显式状态，0未开始 1初次触达 2转化签约 3签约后交付 4长期服务），
+            # 会话当前阶段（显式状态，0未开始 1签约阶段 2企业注册阶段 3银行开户阶段
+            # 4服务准备阶段 5服务启动阶段 6首月服务结算），对应 docs/开户客服流程.md 六阶段；
             # 注入工作流供 Agent 判断所处阶段；工作流结束节点输出 stage 回写（见 handle）
             "currentStage": self._memory.get_stage(req.session_id),
             # 群绑定的开户 ID（开户信息查询 API 用，Agent 调用工具时传入）
@@ -226,14 +227,14 @@ class DifyWorkflowHandler(MessageHandler):
                 group_name=group_name,
             )
 
-        # 工作流结束节点输出 stage（Agent 推进后的服务阶段）→ 回写会话状态，
+        # 工作流结束节点输出 stage（Agent 推进后的会话阶段 0-6）→ 回写会话状态，
         # 下一轮通过 currentStage 注入，Agent 可显式判断当前所处阶段
         stage = outputs.get("stage")
         try:
             stage_int = int(stage)
         except (TypeError, ValueError):
             stage_int = -1
-        if 0 <= stage_int <= 4:
+        if 0 <= stage_int <= 6:
             self._memory.set_stage(session_id, stage_int)
 
         logger.info(

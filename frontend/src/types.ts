@@ -59,15 +59,18 @@ export interface WorkflowApp {
   updated_at: string;
 }
 
+/** 会话阶段（0-6，对应 docs/开户客服流程.md 六阶段） */
 export const STAGE_LABELS: Record<number, string> = {
   0: '未开始',
-  1: '初次触达',
-  2: '转化签约',
-  3: '签约后交付',
-  4: '长期服务',
+  1: '签约阶段',
+  2: '企业注册阶段',
+  3: '银行开户阶段',
+  4: '服务准备阶段',
+  5: '服务启动阶段',
+  6: '首月服务结算',
 };
 
-export const STAGE_OPTIONS = [0, 1, 2, 3, 4] as const;
+export const STAGE_OPTIONS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 export const PLATFORM_OPTIONS = [
   {value: 'wecom', label: '企业微信'},

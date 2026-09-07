@@ -110,7 +110,7 @@ curl http://localhost:8000/health
 
 `frontend/` 是管理后台前端（Vite + React 19 + TypeScript + Tailwind v4），用于：
 - **群绑定关系管理**：查询 / 搜索 / 新增 / 编辑 / 删除群绑定（`group_bindings` 表）；新增或编辑时**知识库ID留空**，保存成功后自动调用 Dify API 创建该群专属知识库（命名 `群记忆_{group_id}`）并回填绑定，创建失败会在弹窗中提示（不影响绑定本身）；
-- **会话服务阶段管理**：查询 / 搜索 / 设置 `session_stage` 表（stage 0~4，也可直接编辑）；
+- **会话阶段管理**：查询 / 搜索 / 设置 `session_stage` 表（stage 0~6：0未开始 1签约 2企业注册 3银行开户 4服务准备 5服务启动 6首月结算，也可直接编辑）；
 - **登录**：用户名/密码（`WT_ADMIN_USERNAME` / `WT_ADMIN_PASSWORD`）登录后签发 Bearer token 访问接口。
 
 **开发模式**（前端热更新，`/api` 代理到本服务 8000 端口）：
@@ -203,8 +203,8 @@ curl -H "Authorization: Bearer eyJ..." http://localhost:8000/api/bindings
 | DELETE | `/api/workflows` | 删除工作流应用注册（`app_id`） |
 | POST | `/api/messages/record` | 记录对话记忆 |
 | GET | `/api/messages/history` | 查询对话历史（`session_id`） |
-| GET | `/api/messages/stage` | 查询单个会话的服务阶段（`session_id`） |
-| POST | `/api/messages/stage` | 设置/重置会话服务阶段（`session_id` + `stage` 0~4） |
+| GET | `/api/messages/stage` | 查询单个会话的阶段（`session_id`，0~6） |
+| POST | `/api/messages/stage` | 设置/重置会话阶段（`session_id` + `stage` 0~6） |
 | GET | `/api/messages/stages` | 分页列出全部会话阶段（`session_id` 模糊搜索、`limit`/`offset`） |
 | POST | `/api/messages/export` | 导出单个群对话到知识库（`session_id` + `since_id` 增量） |
 | POST | `/api/messages/sync` | 手动全量同步所有绑定知识库的群（与每日定时同步同逻辑） |
@@ -264,7 +264,7 @@ flowchart LR
   或 CSV「开户ID」列回填（`python -m src.init_bindings`，CSV 空值保留库内已有值）。
 - **开户办理-主流程**（`dify/开户办理-主流程.yml`）：接收与客服-主流程一致的参数
   （spoken/receivedName/roomType/atMe/textType/recentContext/companyIds/datasetId 等，另含
-  `currentStage` 会话服务阶段、`openAccountId` 开户 ID），
+  `currentStage` 会话阶段（0~6，对应 docs/开户客服流程.md 六阶段）、`openAccountId` 开户 ID），
   门控 → 开户意图识别 → 多轮收集开户必填信息（企业名称/统一社会信用代码/法定代表人/
   经办人电话/开户类型）→ 信息齐全后通过 WorkTool API（type=218）发送开户材料文件，
   并内置回答开户流程/材料咨询；回复统一经 WorkTool 发送。
